@@ -10,7 +10,18 @@ const CinemaCard = ({ cinema }) => {
       />
       <div className="p-6">
         <h3 className="text-xl font-semibold text-white">{cinema.name}</h3>
-        <p className="text-gray-400 mt-2">{cinema.location}</p>
+        <p
+          className="text-gray-400 text-sm flex-grow overflow-hidden"
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          {cinema.location}
+        </p>
+
       </div>
     </div>
   );

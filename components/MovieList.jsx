@@ -1,94 +1,117 @@
-import React from "react";
+'use client';
+import React, { useRef, useState, useEffect } from "react";
 import MovieCard from "./MovieCard.jsx";
+import movies from "../data/movies.json";
+import Link from "next/link";
 
 const MovieList = () => {
-  const movies = [
-    {
-      title: "The Matrix Resurrections",
-      description:
-        "A mind-bending sci-fi thriller, where Neo is once again faced with the choice of reality and illusion in a world that is more complex than ever.",
-      imgSrc:
-        "https://images.unsplash.com/photo-1604908435362-7be9d64c3e6c?crop=entropy&cs=tinysrgb&fit=max&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDd8fG1vdmllfGVufDB8fHx8fDE2Nzg0NzI2NTc&ixlib=rb-1.2.1&q=80&w=400",
-    },
-    {
-      title: "Spider-Man: No Way Home",
-      description:
-        "Spider-Man faces the consequences of his secret identity being exposed, teaming up with Doctor Strange to restore the multiverse and save his loved ones.",
-      imgSrc:
-        "https://images.unsplash.com/photo-1560781114-8a76e0914bb0?crop=entropy&cs=tinysrgb&fit=max&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDJ8fG1vdmllfGVufDB8fHx8fDE2Nzg0NzI3NDE&ixlib=rb-1.2.1&q=80&w=400",
-    },
-    {
-      title: "Dune",
-      description:
-        "A young nobleman becomes embroiled in a war for the survival of his family and his people as he tries to take control of the desert planet, Arrakis.",
-      imgSrc:
-        "https://images.unsplash.com/photo-1566134264-5d4b4b74c9ff?crop=entropy&cs=tinysrgb&fit=max&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDd8fG1vdmllfGVufDB8fHx8fDE2Nzg0NzI3Mzc&ixlib=rb-1.2.1&q=80&w=400",
-    },
-    {
-      title: "Spider-Man: No Way Home",
-      description:
-        "Spider-Man faces the consequences of his secret identity being exposed, teaming up with Doctor Strange to restore the multiverse and save his loved ones.",
-      imgSrc:
-        "https://images.unsplash.com/photo-1560781114-8a76e0914bb0?crop=entropy&cs=tinysrgb&fit=max&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDJ8fG1vdmllfGVufDB8fHx8fDE2Nzg0NzI3NDE&ixlib=rb-1.2.1&q=80&w=400",
-    },
-    {
-      title: "Dune",
-      description:
-        "A young nobleman becomes embroiled in a war for the survival of his family and his people as he tries to take control of the desert planet, Arrakis.",
-      imgSrc:
-        "https://images.unsplash.com/photo-1566134264-5d4b4b74c9ff?crop=entropy&cs=tinysrgb&fit=max&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDd8fG1vdmllfGVufDB8fHx8fDE2Nzg0NzI3Mzc&ixlib=rb-1.2.1&q=80&w=400",
-    },
-    {
-      title: "Spider-Man: No Way Home",
-      description:
-        "Spider-Man faces the consequences of his secret identity being exposed, teaming up with Doctor Strange to restore the multiverse and save his loved ones.",
-      imgSrc:
-        "https://images.unsplash.com/photo-1560781114-8a76e0914bb0?crop=entropy&cs=tinysrgb&fit=max&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDJ8fG1vdmllfGVufDB8fHx8fDE2Nzg0NzI3NDE&ixlib=rb-1.2.1&q=80&w=400",
-    },
-    {
-      title: "Dune",
-      description:
-        "A young nobleman becomes embroiled in a war for the survival of his family and his people as he tries to take control of the desert planet, Arrakis.",
-      imgSrc:
-        "https://images.unsplash.com/photo-1566134264-5d4b4b74c9ff?crop=entropy&cs=tinysrgb&fit=max&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDd8fG1vdmllfGVufDB8fHx8fDE2Nzg0NzI3Mzc&ixlib=rb-1.2.1&q=80&w=400",
-    },
-    {
-      title: "Spider-Man: No Way Home",
-      description:
-        "Spider-Man faces the consequences of his secret identity being exposed, teaming up with Doctor Strange to restore the multiverse and save his loved ones.",
-      imgSrc:
-        "https://images.unsplash.com/photo-1560781114-8a76e0914bb0?crop=entropy&cs=tinysrgb&fit=max&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDJ8fG1vdmllfGVufDB8fHx8fDE2Nzg0NzI3NDE&ixlib=rb-1.2.1&q=80&w=400",
-    },
-    {
-      title: "Dune",
-      description:
-        "A young nobleman becomes embroiled in a war for the survival of his family and his people as he tries to take control of the desert planet, Arrakis.",
-      imgSrc:
-        "https://images.unsplash.com/photo-1566134264-5d4b4b74c9ff?crop=entropy&cs=tinysrgb&fit=max&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDd8fG1vdmllfGVufDB8fHx8fDE2Nzg0NzI3Mzc&ixlib=rb-1.2.1&q=80&w=400",
-    },
-    {
-      title: "Spider-Man: No Way Home",
-      description:
-        "Spider-Man faces the consequences of his secret identity being exposed, teaming up with Doctor Strange to restore the multiverse and save his loved ones.",
-      imgSrc:
-        "https://images.unsplash.com/photo-1560781114-8a76e0914bb0?crop=entropy&cs=tinysrgb&fit=max&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDJ8fG1vdmllfGVufDB8fHx8fDE2Nzg0NzI3NDE&ixlib=rb-1.2.1&q=80&w=400",
-    },
-    {
-      title: "Dune",
-      description:
-        "A young nobleman becomes embroiled in a war for the survival of his family and his people as he tries to take control of the desert planet, Arrakis.",
-      imgSrc:
-        "https://images.unsplash.com/photo-1566134264-5d4b4b74c9ff?crop=entropy&cs=tinysrgb&fit=max&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDd8fG1vdmllfGVufDB8fHx8fDE2Nzg0NzI3Mzc&ixlib=rb-1.2.1&q=80&w=400",
-    },
-  ];
+  const containerRef = useRef(null);
+  const [showButtons, setShowButtons] = useState(false);
+  const [atStart, setAtStart] = useState(true);
+  const [atEnd, setAtEnd] = useState(false);
+
+  const checkScrollPosition = () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    setAtStart(scrollLeft <= 0);
+    setAtEnd(scrollLeft + clientWidth >= scrollWidth - 1);
+  };
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener("scroll", checkScrollPosition);
+    checkScrollPosition();
+
+    return () => container.removeEventListener("scroll", checkScrollPosition);
+  }, []);
+
+  const scroll = (direction) => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const scrollAmount = container.offsetWidth * 0.8;
+    const targetScroll = direction === "left"
+      ? container.scrollLeft - scrollAmount
+      : container.scrollLeft + scrollAmount;
+
+    smoothScrollTo(container, targetScroll, 500);
+  };
+
+  const smoothScrollTo = (element, target, duration) => {
+    const start = element.scrollLeft;
+    const change = target - start;
+    const startTime = performance.now();
+
+    const animateScroll = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      element.scrollLeft = start + change * easeInOutQuad(progress);
+
+      if (progress < 1) {
+        requestAnimationFrame(animateScroll);
+      }
+    };
+
+    requestAnimationFrame(animateScroll);
+  };
+
+  const easeInOutQuad = (t) => t < 0.5
+    ? 2 * t * t
+    : -1 + (4 - 2 * t) * t;
 
   return (
-    <section className="py-8">
+    <section
+      className="py-8 relative group"
+      onMouseEnter={() => setShowButtons(true)}
+      onMouseLeave={() => setShowButtons(false)}
+    >
       <div className="max-w-7xl mx-auto px-4">
-        <h2 className="text-3xl font-semibold text-gray-100 mb-6">Vizyondakiler</h2>
-        <div className="flex overflow-x-auto gap-8">
+        <h2 className="text-3xl font-semibold text-gray-100 mb-6">
+          Vizyondakiler
+        </h2>
+
+        {showButtons && (
+          <button
+            onClick={() => scroll("left")}
+            disabled={atStart}
+            className={`absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-700 bg-opacity-70 hover:bg-opacity-90 text-white p-3 rounded-full shadow-lg z-10 transition-opacity ${
+              atStart ? "opacity-30 cursor-not-allowed" : "opacity-100"
+            }`}
+          >
+            ◀
+          </button>
+        )}
+
+        {showButtons && (
+          <button
+            onClick={() => scroll("right")}
+            disabled={atEnd}
+            className={`absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-700 bg-opacity-70 hover:bg-opacity-90 text-white p-3 rounded-full shadow-lg z-10 transition-opacity ${
+              atEnd ? "opacity-30 cursor-not-allowed" : "opacity-100"
+            }`}
+          >
+            ▶
+          </button>
+        )}
+
+        <div
+          ref={containerRef}
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+          className="flex overflow-x-auto gap-8"
+        >
           {movies.map((movie, index) => (
-            <MovieCard key={index} movie={movie} />
+            <Link key={movie.id || index} href={`/movies/${movie.slug}`}>
+            <div className="transition-transform transform hover:scale-105">
+              <MovieCard movie={movie} />
+            </div>
+          </Link>
           ))}
         </div>
       </div>
