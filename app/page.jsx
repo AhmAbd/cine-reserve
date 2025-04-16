@@ -1,6 +1,10 @@
 'use client';
 import MovieList from "../components/MovieList";
 import CinemaList from "../components/CinemaList";
+<<<<<<< HEAD
+=======
+import Link from "next/link";
+>>>>>>> 546cdca91d6183d025495619f1f0bb3a73cc6458
 
 const Home = () => {
   return (
@@ -15,10 +19,19 @@ const Home = () => {
 
           {/* Navigation (on the right side) */}
           <nav className="space-x-8 flex items-center text-lg font-semibold">
+<<<<<<< HEAD
             <a href="#home" className="hover:text-accent transition-all">Anasayfa</a>
             <a href="#films" className="hover:text-accent transition-all">Filmler</a>
             <a href="#cinemas" className="hover:text-accent transition-all">Sinemalar</a>
             <a href="#login" className="bg-accent text-white px-6 py-2 rounded-full hover:bg-accent-light transition-all">Giriş Yap</a>
+=======
+            <Link href="#home" className="hover:text-accent transition-all">Anasayfa</Link>
+            <Link href="#films" className="hover:text-accent transition-all">Filmler</Link>
+            <Link href="#cinemas" className="hover:text-accent transition-all">Sinemalar</Link>
+            <Link href="/login" className="bg-accent text-white px-6 py-2 rounded-full hover:bg-accent-light transition-all">
+              Giriş Yap veya Kaydol
+            </Link>
+>>>>>>> 546cdca91d6183d025495619f1f0bb3a73cc6458
           </nav>
         </div>
       </header>
