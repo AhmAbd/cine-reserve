@@ -2,6 +2,7 @@
 import MovieList from "../components/MovieList";
 import CinemaList from "../components/CinemaList";
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import Link from "next/link";
 >>>>>>> 546cdca91d6183d025495619f1f0bb3a73cc6458
@@ -56,3 +57,14 @@ const Home = () => {
 }
 
 export default Home
+=======
+
+export default function HomePage() {
+  return (
+    <main className="min-h-screen bg-[#1a1a1a] text-white">
+      <MovieList />
+      <CinemaList />
+    </main>
+  );
+}
+>>>>>>> cec14f642888ae23c6a43b1d1651a722ffe9c631

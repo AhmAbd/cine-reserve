@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import '@styles/globals.css'
 
 import { title } from 'process'
@@ -16,6 +17,8 @@ const layout = () => {
 
 export default layout
 =======
+=======
+>>>>>>> cec14f642888ae23c6a43b1d1651a722ffe9c631
 'use client';
 
 import { loadStripe } from '@stripe/stripe-js';
@@ -32,4 +35,7 @@ export default function Layout({ children }) {
     </Elements>
   );
 }
+<<<<<<< HEAD
 >>>>>>> 546cdca91d6183d025495619f1f0bb3a73cc6458
+=======
+>>>>>>> cec14f642888ae23c6a43b1d1651a722ffe9c631

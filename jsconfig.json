@@ -1,7 +1,14 @@
 {
   "compilerOptions": {
+<<<<<<< HEAD
     "paths": {
       "@/*": ["./*"]
+=======
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@lib/*": ["./lib/*"]
+>>>>>>> cec14f642888ae23c6a43b1d1651a722ffe9c631
     }
   }
 }

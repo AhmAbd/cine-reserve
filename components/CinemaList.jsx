@@ -1,15 +1,32 @@
 'use client';
 import React, { useRef, useState, useEffect } from "react";
 import CinemaCard from "./CinemaCard.jsx";
+<<<<<<< HEAD
 import cinemas from "../data/cinemas.json";
+=======
+>>>>>>> cec14f642888ae23c6a43b1d1651a722ffe9c631
 import Link from "next/link";
 
 const CinemaList = () => {
   const containerRef = useRef(null);
+<<<<<<< HEAD
+=======
+  const [cinemas, setCinemas] = useState([]);
+>>>>>>> cec14f642888ae23c6a43b1d1651a722ffe9c631
   const [showButtons, setShowButtons] = useState(false);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
 
+<<<<<<< HEAD
+=======
+  // ✅ Load cinemas.json client-side
+  useEffect(() => {
+    import("../data/cinemas.json").then((mod) => {
+      setCinemas(mod.default);
+    });
+  }, []);
+
+>>>>>>> cec14f642888ae23c6a43b1d1651a722ffe9c631
   const checkScrollPosition = () => {
     const container = containerRef.current;
     if (!container) return;
@@ -62,6 +79,15 @@ const CinemaList = () => {
   const easeInOutQuad = (t) =>
     t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
+<<<<<<< HEAD
+=======
+  if (!cinemas.length) {
+    return (
+      <div className="text-center text-white py-10">Yükleniyor...</div>
+    );
+  }  
+
+>>>>>>> cec14f642888ae23c6a43b1d1651a722ffe9c631
   return (
     <section
       className="py-8 relative group"
@@ -73,7 +99,10 @@ const CinemaList = () => {
           Ayrıcalıklı Salonlar
         </h2>
 
+<<<<<<< HEAD
         {/* Left Scroll Button */}
+=======
+>>>>>>> cec14f642888ae23c6a43b1d1651a722ffe9c631
         {showButtons && (
           <button
             onClick={() => scroll("left")}
@@ -86,7 +115,10 @@ const CinemaList = () => {
           </button>
         )}
 
+<<<<<<< HEAD
         {/* Right Scroll Button */}
+=======
+>>>>>>> cec14f642888ae23c6a43b1d1651a722ffe9c631
         {showButtons && (
           <button
             onClick={() => scroll("right")}
@@ -99,7 +131,10 @@ const CinemaList = () => {
           </button>
         )}
 
+<<<<<<< HEAD
         {/* Cinema Cards List */}
+=======
+>>>>>>> cec14f642888ae23c6a43b1d1651a722ffe9c631
         <div
           ref={containerRef}
           style={{

@@ -140,4 +140,45 @@ body {
     --accent: #10b981;
     --accent-light: #34d399;
   }
+<<<<<<< HEAD
+=======
+  
+  header.custom-header {
+    background-color: #2d3748;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    transition: background-color 0.3s ease-in-out;
+  }
+  
+  header.custom-header:hover {
+    background-color: #232a34;
+  }
+  
+  .nav-link {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: white;
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+  
+  .nav-link:hover {
+    color: #a020f0;
+  }
+  
+  .login-button {
+    background-color: #a020f0;
+    color: white;
+    padding: 0.6rem 1.5rem;
+    border-radius: 1.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+  }
+  
+  .login-button:hover {
+    background-color: #c084fc;
+  }
+>>>>>>> cec14f642888ae23c6a43b1d1651a722ffe9c631
   
