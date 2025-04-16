@@ -1,0 +1,23 @@
+[
+    {
+      "slug": "the-matrix-resurrections",
+      "title": "The Matrix Resurrections",
+      "description": "Neo is once again faced with the choice of reality and illusion.",
+      "imgSrc": "https://images.unsplash.com/photo-1604908435362-7be9d64c3e6c?crop=entropy&cs=tinysrgb&fit=max&q=80&w=400",
+      "duration": "2h 30m",
+      "genre": "Bilim Kurgu",
+      "releaseDate": "2025-04-15",
+      "trailerUrl": "https://www.youtube.com/embed/9ix7TUGVYIo"
+    },
+    {
+      "slug": "spider-man-no-way-home", 
+      "title": "Spider-Man: No Way Home",
+      "description": "Spider-Man faces the consequences of his secret identity...",
+      "imgSrc": "https://images.unsplash.com/photo-1560781114-8a76e0914bb0?crop=entropy&cs=tinysrgb&fit=max&q=80&w=400",
+      "duration": "2h 28m",
+      "genre": "Aksiyon",
+      "releaseDate": "2025-04-15",
+      "trailerUrl": "https://www.youtube.com/embed/JfVOs4VSpmA"
+    }
+  ]
+  

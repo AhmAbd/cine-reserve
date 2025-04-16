@@ -1,0 +1,43 @@
+[
+    {
+      "slug": "cineplex",
+      "name": "Cineplex",
+      "location": "Downtown, City A",
+      "imgSrc": "https://images.unsplash.com/photo-1531326736783-c556d56b0037?crop=entropy&cs=tinysrgb&fit=max&q=80&w=400",
+      "mapLink": "https://maps.google.com/?q=Cineplex+City+A",
+      "weeklySchedule": [
+        {
+          "day": "Pazartesi",
+          "movies": [
+            {
+              "slug": "the-matrix-resurrections",
+              "title": "The Matrix Resurrections",
+              "duration": "2h 30m",
+              "genre": "Bilim Kurgu",
+              "showtime": "2025-04-15 19:00"
+            },
+            {
+              "slug": "spider-man-no-way-home",
+              "title": "Spider-Man: No Way Home",
+              "duration": "2h 28m",
+              "genre": "Aksiyon",
+              "showtime": "2025-04-15 21:30"
+            }
+          ]
+        },
+        {
+          "day": "Salı",
+          "movies": [
+            {
+              "slug": "the-matrix-resurrections",
+              "title": "The Matrix Resurrections",
+              "duration": "2h 30m",
+              "genre": "Bilim Kurgu",
+              "showtime": "2025-04-16 19:00"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+  
