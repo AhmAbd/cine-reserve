@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../lib/firebase'; // Firebase bağlantısı
 import { useRouter } from 'next/navigation';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase'; // Firebase Firestore bağlantısı
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -17,8 +19,26 @@ const Login = () => {
     const password = e.target.password.value;
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push('/home'); // Başarılıysa yönlendir
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+      // Kullanıcı bilgilerini Firebase'den al
+      const userRef = doc(db, 'users', userCredential.user.uid);
+      const userDoc = await getDoc(userRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        
+        // Kullanıcının askıya alınıp alınmadığını kontrol et
+        if (userData.suspended) {
+          setError('Hesabınız askıya alınmış. Lütfen destek ile iletişime geçin.');
+          return;
+        }
+
+        // Eğer askıya alınmamışsa, kullanıcıyı yönlendir
+        router.push('/home');
+      } else {
+        setError('Kullanıcı bilgileri bulunamadı.');
+      }
     } catch (err) {
       setError('E-posta veya şifre hatalı!');
     }

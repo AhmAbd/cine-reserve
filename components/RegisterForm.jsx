@@ -20,6 +20,8 @@ export default function RegisterPage() {
     sms: false,
     emailConsent: false,
     kvkkConsent: false,
+    role: "user",
+    suspended: false,
   });
 
   const handleChange = (e) => {
@@ -53,6 +55,8 @@ export default function RegisterPage() {
         emailConsent: form.emailConsent,
         kvkkConsent: form.kvkkConsent,
         createdAt: new Date(),
+        role: form.role,
+        suspended: form.suspended,
       });
 
       alert("Kayıt başarılı!");
