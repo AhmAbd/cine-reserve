@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
 
-  const hiddenPaths = ['/login', '/register', '/payment'];
+  const hiddenPaths = ['/login', '/register', '/reset-password'];
   const showHeader = !hiddenPaths.includes(pathname);
 
   return (
