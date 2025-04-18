@@ -1,7 +1,10 @@
 'use client';
-import React, { useRef, useState, useEffect } from "react";
-import CinemaCard from "./CinemaCard.jsx";
-import Link from "next/link";
+
+import React, { useRef, useState, useEffect } from 'react';
+import Link from 'next/link';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import CinemaCard from './CinemaCard';
 
 const CinemaList = () => {
   const containerRef = useRef(null);
@@ -10,11 +13,17 @@ const CinemaList = () => {
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
 
-  // ✅ Load cinemas.json client-side
   useEffect(() => {
-    import("../data/cinemas.json").then((mod) => {
-      setCinemas(mod.default);
-    });
+    const fetchCinemas = async () => {
+      const snapshot = await getDocs(collection(db, 'cinemas'));
+      const list = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setCinemas(list);
+    };
+
+    fetchCinemas();
   }, []);
 
   const checkScrollPosition = () => {
@@ -30,10 +39,10 @@ const CinemaList = () => {
     const container = containerRef.current;
     if (!container) return;
 
-    container.addEventListener("scroll", checkScrollPosition);
+    container.addEventListener('scroll', checkScrollPosition);
     checkScrollPosition();
 
-    return () => container.removeEventListener("scroll", checkScrollPosition);
+    return () => container.removeEventListener('scroll', checkScrollPosition);
   }, []);
 
   const scroll = (direction) => {
@@ -41,9 +50,10 @@ const CinemaList = () => {
     if (!container) return;
 
     const scrollAmount = container.offsetWidth * 0.8;
-    const targetScroll = direction === "left"
-      ? container.scrollLeft - scrollAmount
-      : container.scrollLeft + scrollAmount;
+    const targetScroll =
+      direction === 'left'
+        ? container.scrollLeft - scrollAmount
+        : container.scrollLeft + scrollAmount;
 
     smoothScrollTo(container, targetScroll, 500);
   };
@@ -70,10 +80,8 @@ const CinemaList = () => {
     t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
   if (!cinemas.length) {
-    return (
-      <div className="text-center text-white py-10">Yükleniyor...</div>
-    );
-  }  
+    return <div className="text-white py-10 text-center">Yükleniyor...</div>;
+  }
 
   return (
     <section
@@ -88,10 +96,10 @@ const CinemaList = () => {
 
         {showButtons && (
           <button
-            onClick={() => scroll("left")}
+            onClick={() => scroll('left')}
             disabled={atStart}
             className={`absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-700 bg-opacity-70 hover:bg-opacity-90 text-white p-3 rounded-full shadow-lg z-10 transition-opacity ${
-              atStart ? "opacity-30 cursor-not-allowed" : "opacity-100"
+              atStart ? 'opacity-30 cursor-not-allowed' : 'opacity-100'
             }`}
           >
             ◀
@@ -100,10 +108,10 @@ const CinemaList = () => {
 
         {showButtons && (
           <button
-            onClick={() => scroll("right")}
+            onClick={() => scroll('right')}
             disabled={atEnd}
             className={`absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-700 bg-opacity-70 hover:bg-opacity-90 text-white p-3 rounded-full shadow-lg z-10 transition-opacity ${
-              atEnd ? "opacity-30 cursor-not-allowed" : "opacity-100"
+              atEnd ? 'opacity-30 cursor-not-allowed' : 'opacity-100'
             }`}
           >
             ▶
@@ -119,7 +127,7 @@ const CinemaList = () => {
           className="flex overflow-x-auto gap-8"
         >
           {cinemas.map((cinema) => (
-            <Link key={cinema.slug} href={`/cinemas/${cinema.slug}`}>
+            <Link key={cinema.id} href={`/cinemas/${cinema.slug}`}>
               <div className="transition-transform transform hover:scale-105">
                 <CinemaCard cinema={cinema} />
               </div>

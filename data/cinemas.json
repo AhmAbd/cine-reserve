@@ -1,43 +1,70 @@
 [
-    {
-      "slug": "cineplex",
-      "name": "Cineplex",
-      "location": "Downtown, City A",
-      "imgSrc": "https://images.unsplash.com/photo-1531326736783-c556d56b0037?crop=entropy&cs=tinysrgb&fit=max&q=80&w=400",
-      "mapLink": "https://maps.google.com/?q=Cineplex+City+A",
-      "weeklySchedule": [
-        {
-          "day": "Pazartesi",
-          "movies": [
-            {
-              "slug": "the-matrix-resurrections",
-              "title": "The Matrix Resurrections",
-              "duration": "2h 30m",
-              "genre": "Bilim Kurgu",
-              "showtime": "2025-04-15 19:00"
-            },
-            {
-              "slug": "spider-man-no-way-home",
-              "title": "Spider-Man: No Way Home",
-              "duration": "2h 28m",
-              "genre": "Aksiyon",
-              "showtime": "2025-04-15 21:30"
-            }
-          ]
-        },
-        {
-          "day": "Salı",
-          "movies": [
-            {
-              "slug": "the-matrix-resurrections",
-              "title": "The Matrix Resurrections",
-              "duration": "2h 30m",
-              "genre": "Bilim Kurgu",
-              "showtime": "2025-04-16 19:00"
-            }
-          ]
-        }
-      ]
-    }
-  ]
-  
+  {
+    "slug": "cineplex",
+    "name": "Cineplex",
+    "location": "Downtown, City A",
+    "imgSrc": "https://images.unsplash.com/photo-1531326736783-c556d56b0037?crop=entropy&cs=tinysrgb&fit=max&q=80&w=400",
+    "mapLink": "https://maps.google.com/?q=Cineplex+City+A",
+    "seats": 40,
+    "weeklySchedule": [
+      {
+        "day": "Pazartesi",
+        "movies": [
+          {
+            "slug": "oppenheimer",
+            "title": "Oppenheimer",
+            "duration": "3s 0dk",
+            "genre": "Biyografi, Dram",
+            "showtime": "2025-04-22 19:00"
+          }
+        ]
+      },
+      {
+        "day": "Çarşamba",
+        "movies": [
+          {
+            "slug": "top-gun-maverick",
+            "title": "Top Gun: Maverick",
+            "duration": "2s 11dk",
+            "genre": "Aksiyon, Dram",
+            "showtime": "2025-04-24 21:00"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "cinema-max",
+    "name": "Cinema Max",
+    "location": "Mall Plaza, City B",
+    "imgSrc": "https://images.unsplash.com/photo-1560781114-8a76e0914bb0?crop=entropy&cs=tinysrgb&fit=max&q=80&w=400",
+    "mapLink": "https://maps.google.com/?q=Cinema+Max+City+B",
+    "seats": 32,
+    "weeklySchedule": [
+      {
+        "day": "Salı",
+        "movies": [
+          {
+            "slug": "dune-part-two",
+            "title": "Dune: Part Two",
+            "duration": "2s 46dk",
+            "genre": "Bilim Kurgu",
+            "showtime": "2025-04-23 20:30"
+          }
+        ]
+      },
+      {
+        "day": "Perşembe",
+        "movies": [
+          {
+            "slug": "the-batman",
+            "title": "The Batman",
+            "duration": "2s 56dk",
+            "genre": "Aksiyon, Suç",
+            "showtime": "2025-04-25 18:45"
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,66 +1,84 @@
+'use client';
+
 import { useState } from 'react';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 export default function AddCinema() {
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
+  const [seats, setSeats] = useState(40);
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleAddCinema = async () => {
-    if (!name || !location) {
-      setMessage('Tüm alanları doldurduğunuzdan emin olun.');
-      return;
-    }
+  const generateSlug = (text) =>
+    text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
 
     try {
-      const cinemasRef = collection(db, 'cinemas');
-      await addDoc(cinemasRef, {
+      const slug = generateSlug(name);
+      await addDoc(collection(db, 'cinemas'), {
         name,
+        slug,
         location,
-        createdAt: new Date(),
+        seats: Number(seats),
+        createdAt: serverTimestamp()
       });
 
-      setMessage('Sinema salonu başarıyla eklendi.');
+      setMessage('✅ Sinema başarıyla eklendi!');
       setName('');
       setLocation('');
-    } catch (error) {
-      setMessage('Bir hata oluştu: ' + error.message);
+      setSeats(40);
+    } catch (err) {
+      console.error(err);
+      setMessage('❌ Hata oluştu: ' + err.message);
     }
+
+    setLoading(false);
   };
 
   return (
-    <div className="p-4 bg-black-100 shadow-md rounded-lg">
-      <h2 className="text-xl font-semibold mb-4">Sinema Salonu Ekle</h2>
-
-      <div className="mb-4">
-        <label className="block mb-2">Salon Adı</label>
+    <div className="p-6 text-white max-w-xl mx-auto">
+      <h2 className="text-xl font-bold mb-4">Yeni Sinema Ekle</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md"
+          placeholder="Sinema Adı"
+          required
+          className="w-full p-2 bg-gray-900 border border-gray-700 rounded"
         />
-      </div>
-
-      <div className="mb-4">
-        <label className="block mb-2">Lokasyon</label>
         <input
           type="text"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md"
+          placeholder="Google Maps Linki"
+          required
+          className="w-full p-2 bg-gray-900 border border-gray-700 rounded"
         />
-      </div>
+        <input
+          type="number"
+          value={seats}
+          onChange={(e) => setSeats(e.target.value)}
+          placeholder="Toplam Koltuk Sayısı"
+          required
+          className="w-full p-2 bg-gray-900 border border-gray-700 rounded"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-[#a020f0] py-2 rounded hover:bg-purple-700 transition"
+        >
+          {loading ? 'Yükleniyor...' : 'Sinema Ekle'}
+        </button>
+      </form>
 
-      <button
-        onClick={handleAddCinema}
-        className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700"
-      >
-        Ekle
-      </button>
-
-      {message && <p className="mt-4 text-sm text-gray-600">{message}</p>}
+      {message && <p className="mt-4 text-sm">{message}</p>}
     </div>
   );
 }

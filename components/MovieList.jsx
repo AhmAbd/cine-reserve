@@ -1,5 +1,8 @@
 'use client';
+
 import React, { useRef, useState, useEffect } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../lib/firebase";
 import MovieCard from "./MovieCard.jsx";
 import Link from "next/link";
 
@@ -10,11 +13,19 @@ const MovieList = () => {
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
 
-  // ✅ Load JSON safely in the browser
+  // ✅ Load movies from Firestore "films" collection
   useEffect(() => {
-    import("../data/movies.json").then((mod) => {
-      setMovies(mod.default);
-    });
+    const fetchMovies = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "films"));
+        const movieList = querySnapshot.docs.map((doc) => doc.data());
+        setMovies(movieList);
+      } catch (error) {
+        console.error("Failed to fetch films:", error);
+      }
+    };
+
+    fetchMovies();
   }, []);
 
   const checkScrollPosition = () => {
@@ -41,9 +52,10 @@ const MovieList = () => {
     if (!container) return;
 
     const scrollAmount = container.offsetWidth * 0.8;
-    const targetScroll = direction === "left"
-      ? container.scrollLeft - scrollAmount
-      : container.scrollLeft + scrollAmount;
+    const targetScroll =
+      direction === "left"
+        ? container.scrollLeft - scrollAmount
+        : container.scrollLeft + scrollAmount;
 
     smoothScrollTo(container, targetScroll, 500);
   };
@@ -66,9 +78,8 @@ const MovieList = () => {
     requestAnimationFrame(animateScroll);
   };
 
-  const easeInOutQuad = (t) => t < 0.5
-    ? 2 * t * t
-    : -1 + (4 - 2 * t) * t;
+  const easeInOutQuad = (t) =>
+    t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
   if (!movies.length) return null;
 
@@ -116,7 +127,7 @@ const MovieList = () => {
           className="flex overflow-x-auto gap-8"
         >
           {movies.map((movie, index) => (
-            <Link key={movie.id || index} href={`/movies/${movie.slug}`}>
+            <Link key={movie.slug || index} href={`/movies/${movie.slug}`}>
               <div className="transition-transform transform hover:scale-105">
                 <MovieCard movie={movie} />
               </div>
