@@ -1,4 +1,4 @@
-import ClientLayout from './layout.client';
+import ClientLayout from "./layout.client";
 
 export const metadata = {
   title: "cinereserve",

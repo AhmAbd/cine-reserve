@@ -1,15 +1,17 @@
-'use client';
+"use client";
 
 import "../styles/globals.css";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import Footer from "../components/layout/Footer";
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
 
-  const hiddenPaths = ['/login', '/register', '/reset-password'];
+  const hiddenPaths = ["/login", "/register", "/reset-password"];
   const showHeader = !hiddenPaths.includes(pathname);
+  const showFooter = !hiddenPaths.includes(pathname); // <-- FOOTER GÖRÜNÜRLÜK KONTROLÜ
 
   return (
     <>
@@ -36,22 +38,27 @@ export default function ClientLayout({ children }) {
               />
             </Link>
 
-            <nav style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
-              <Link href="/movies" className="nav-link">Filmler</Link>
-              <Link href="/cinemas" className="nav-link">Sinemalar</Link>
-              <Link href="/login" className="login-button">Giriş Yap / Kayıt Ol</Link>
+            <nav
+              style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}
+            >
+              <Link href="/movies" className="nav-link">
+                Filmler
+              </Link>
+              <Link href="/cinemas" className="nav-link">
+                Sinemalar
+              </Link>
+              <Link href="/login" className="login-button">
+                Giriş Yap / Kayıt Ol
+              </Link>
             </nav>
           </div>
         </header>
       )}
-
       <div className="main">
         <div className="gradient" />
       </div>
-
-      <main className="app">
-        {children}
-      </main>
+      <main className="app">{children}</main>
+      {showFooter && <Footer />} {/* <-- FOOTER BURADA */}
     </>
   );
 }
