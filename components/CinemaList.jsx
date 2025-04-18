@@ -18,7 +18,7 @@ const CinemaList = () => {
       const snapshot = await getDocs(collection(db, 'cinemas'));
       const list = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
       setCinemas(list);
     };
@@ -127,7 +127,7 @@ const CinemaList = () => {
           className="flex overflow-x-auto gap-8"
         >
           {cinemas.map((cinema) => (
-            <Link key={cinema.id} href={`/cinemas/${cinema.slug}`}>
+            <Link key={cinema.id} href={`/cinemas/${cinema.id}`}>
               <div className="transition-transform transform hover:scale-105">
                 <CinemaCard cinema={cinema} />
               </div>

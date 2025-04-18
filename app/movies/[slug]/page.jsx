@@ -1,10 +1,7 @@
-// app/movies/[slug]/page.jsx
-
 import { db } from "../../../lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import Link from "next/link";
 
-// ✅ Generate static paths from film slugs
 export async function generateStaticParams() {
   const snapshot = await getDocs(collection(db, "films"));
   const paths = [];
@@ -19,14 +16,13 @@ export async function generateStaticParams() {
   return paths;
 }
 
-// ✅ Movie Detail Page
 export default async function MovieDetailPage({ params }) {
   const slug = params.slug;
 
-  const snapshot = await getDocs(collection(db, "films"));
+  const filmSnap = await getDocs(collection(db, "films"));
   let movie = null;
 
-  snapshot.forEach((docSnap) => {
+  filmSnap.forEach((docSnap) => {
     const data = docSnap.data();
     if (data.slug === slug) {
       movie = data;
@@ -36,6 +32,17 @@ export default async function MovieDetailPage({ params }) {
   if (!movie) {
     return <div className="text-white p-10">Film bulunamadı.</div>;
   }
+
+  // ✅ Fetch names for all cinemas
+  const cinemaData = await Promise.all(
+    (movie.cinemas || []).map(async (cinema) => {
+      const snap = await getDoc(doc(db, "cinemas", cinema.id));
+      return {
+        ...cinema,
+        name: snap.exists() ? snap.data().name : cinema.id,
+      };
+    })
+  );
 
   return (
     <div className="min-h-screen bg-[#1f1f1f] text-white px-6 py-12">
@@ -76,12 +83,15 @@ export default async function MovieDetailPage({ params }) {
 
       <div className="max-w-4xl mx-auto mt-8">
         <h2 className="text-xl font-semibold mb-4">Bu Filmi İzleyebileceğiniz Salonlar</h2>
-        {movie.cinemas && movie.cinemas.length > 0 ? (
+        {cinemaData.length > 0 ? (
           <ul className="space-y-4">
-            {movie.cinemas.map((cinema) => (
-              <li key={cinema.id} className="bg-gray-800 p-4 rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            {cinemaData.map((cinema) => (
+              <li
+                key={cinema.id}
+                className="bg-gray-800 p-4 rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center"
+              >
                 <div>
-                  <p className="font-semibold">{cinema.name || cinema.id}</p>
+                  <p className="font-semibold">{cinema.name}</p>
                   <p className="text-gray-400 text-sm">
                     Seans: {new Date(cinema.showtime).toLocaleString("tr-TR")}
                   </p>
