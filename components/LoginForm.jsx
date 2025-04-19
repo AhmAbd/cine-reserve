@@ -35,7 +35,7 @@ const Login = () => {
         }
 
         // Eğer askıya alınmamışsa, kullanıcıyı yönlendir
-        router.push('/home');
+        router.push('/');
       } else {
         setError('Kullanıcı bilgileri bulunamadı.');
       }

@@ -3,15 +3,41 @@
 import "../styles/globals.css";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import Footer from "../components/layout/Footer";
+import { app } from "../lib/firebase"; // kendi Firebase config'ine göre bu yolu kontrol et
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
 
+  // Admin sayfasını kontrol et
+  const isAdminPage = pathname.startsWith("/admin");
+
+  // Admin sayfasında header ve footer'ı gizlemek için koşul ekleyin
   const hiddenPaths = ["/login", "/register", "/reset-password"];
-  const showHeader = !hiddenPaths.includes(pathname);
-  const showFooter = !hiddenPaths.includes(pathname); // <-- FOOTER GÖRÜNÜRLÜK KONTROLÜ
+  const showHeader = !hiddenPaths.includes(pathname) && !isAdminPage;
+  const showFooter = !hiddenPaths.includes(pathname) && !isAdminPage;
+
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const auth = getAuth(app);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    const auth = getAuth(app);
+    await signOut(auth);
+    setUser(null);
+    router.push("/"); // anasayfaya yönlendir
+  };
 
   return (
     <>
@@ -47,18 +73,33 @@ export default function ClientLayout({ children }) {
               <Link href="/cinemas" className="nav-link">
                 Sinemalar
               </Link>
-              <Link href="/login" className="login-button">
-                Giriş Yap / Kayıt Ol
-              </Link>
+
+              {user ? (
+                <>
+                  <Link href="/account" className="nav-link">
+                    Hesabım
+                  </Link>
+                  <button onClick={handleLogout} className="login-button">
+                    Çıkış Yap
+                  </button>
+                </>
+              ) : (
+                <Link href="/login" className="login-button">
+                  Giriş Yap / Kayıt Ol
+                </Link>
+              )}
             </nav>
           </div>
         </header>
       )}
+
       <div className="main">
         <div className="gradient" />
       </div>
+
       <main className="app">{children}</main>
-      {showFooter && <Footer />} {/* <-- FOOTER BURADA */}
+
+      {showFooter && <Footer />}
     </>
   );
 }

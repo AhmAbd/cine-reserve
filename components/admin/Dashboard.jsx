@@ -34,6 +34,11 @@ export default function Dashboard() {
           onClick={() => navigateToPage('cinemas')}>
           Sinema Salonları Listesi
         </button>
+        <button
+          className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold"
+          onClick={() => navigateToPage('messages')}>
+          Gelen Mesajlar
+        </button>
       </div>
     </div>
   );

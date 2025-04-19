@@ -1,6 +1,3 @@
-// 'use client';
-
-// import PaymentForm from '../../components/PaymentForm';
 'use client';
 
 import React from 'react';
