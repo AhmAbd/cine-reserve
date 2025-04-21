@@ -26,7 +26,7 @@ export default function AdminLoginForm() {
   
       if (userDocSnap.exists() && userDocSnap.data().role === 'admin') {
         // Admin rolüne sahipse dashboard sayfasına yönlendir
-        router.push('/admin/dashboard');
+        router.push('/admin/users');
       } else {
         setError('Bu kullanıcı bir admin değil.');
       }
