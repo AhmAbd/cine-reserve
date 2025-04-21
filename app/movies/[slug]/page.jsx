@@ -1,46 +1,95 @@
-import { db } from "../../../lib/firebase";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
-import Link from "next/link";
+'use client';
 
-// Static generation
-export async function generateStaticParams() {
-  const snapshot = await getDocs(collection(db, "films"));
-  return snapshot.docs
-    .map((doc) => doc.data().slug)
-    .filter(Boolean)
-    .map((slug) => ({ slug }));
-}
+import { useEffect, useState } from 'react';
+import { db } from '../../../lib/firebase';
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+} from 'firebase/firestore';
+import Link from 'next/link';
+import useRequireAuth from '../../../hooks/useRequireAuth';
 
-export default async function MovieDetailPage({ params }) {
+export default function MovieDetailPage({ params }) {
   const slug = params.slug;
-  const filmSnap = await getDocs(collection(db, "films"));
-  let movie = null;
+  const { user, loading: authLoading } = useRequireAuth();
+  const [movie, setMovie] = useState(null);
+  const [cinemaData, setCinemaData] = useState([]);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  filmSnap.forEach((docSnap) => {
-    const data = docSnap.data();
-    if (data.slug === slug) {
-      movie = data;
-    }
-  });
+  // ✅ Fetch movie & cinemas
+  useEffect(() => {
+    const fetchMovie = async () => {
+      const filmSnap = await getDocs(collection(db, 'films'));
+      let foundMovie = null;
 
-  if (!movie) return <div className="text-white p-10">Film bulunamadı.</div>;
+      filmSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.slug === slug) foundMovie = data;
+      });
 
-  const cinemaData = await Promise.all(
-    (movie.cinemas || []).map(async (cinema) => {
-      const snap = await getDoc(doc(db, "cinemas", cinema.id));
-      return {
-        ...cinema,
-        name: snap.exists() ? snap.data().name : cinema.id,
-      };
-    })
-  );
+      if (!foundMovie) {
+        setLoading(false);
+        return;
+      }
 
+      setMovie(foundMovie);
+
+      const cinemas = await Promise.all(
+        (foundMovie.cinemas || []).map(async (cinema) => {
+          const snap = await getDoc(doc(db, 'cinemas', cinema.id));
+          return {
+            ...cinema,
+            name: snap.exists() ? snap.data().name : cinema.id,
+          };
+        })
+      );
+
+      setCinemaData(cinemas);
+      setLoading(false);
+    };
+
+    fetchMovie();
+  }, [slug]);
+
+  // ✅ Check if movie is in favorites
+  useEffect(() => {
+    const checkFavorites = async () => {
+      if (!user) return;
+
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+      const favorites = userSnap.data()?.favorites || [];
+      setIsFavorite(favorites.includes(slug));
+    };
+
+    if (user && movie) checkFavorites();
+  }, [user, movie]);
+
+  // ✅ Handle add/remove
+  const toggleFavorite = async () => {
+    if (!user) return;
+
+    const userRef = doc(db, 'users', user.uid);
+    await updateDoc(userRef, {
+      favorites: isFavorite ? arrayRemove(slug) : arrayUnion(slug),
+    });
+
+    setIsFavorite(!isFavorite);
+  };
+
+  // ✅ Group showtimes
   const sessionsByDate = {};
   cinemaData.forEach((cinema) => {
-    const dateKey = new Date(cinema.showtime).toLocaleDateString("tr-TR", {
-      day: "2-digit",
-      month: "short",
-      weekday: "short",
+    const dateKey = new Date(cinema.showtime).toLocaleDateString('tr-TR', {
+      day: '2-digit',
+      month: 'short',
+      weekday: 'short',
     });
 
     if (!sessionsByDate[dateKey]) sessionsByDate[dateKey] = [];
@@ -52,6 +101,14 @@ export default async function MovieDetailPage({ params }) {
       new Date(sessionsByDate[a][0].showtime) -
       new Date(sessionsByDate[b][0].showtime)
   );
+
+  if (loading) {
+    return <div className="text-white p-10">Yükleniyor...</div>;
+  }
+
+  if (!movie) {
+    return <div className="text-white p-10">Film bulunamadı.</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#1f1f1f] text-white px-6 py-10">
@@ -101,7 +158,7 @@ export default async function MovieDetailPage({ params }) {
               </span>
               <p>
                 {new Date(movie.releaseDate.toDate()).toLocaleDateString(
-                  "tr-TR"
+                  'tr-TR'
                 )}
               </p>
             </div>
@@ -109,8 +166,16 @@ export default async function MovieDetailPage({ params }) {
 
           <p className="text-gray-300 leading-relaxed">{movie.description}</p>
 
-          <button className="bg-gray-700 text-white px-4 py-2 rounded-md w-fit hover:bg-gray-600 transition">
-            ❤️ Favorilere Ekle
+          {/* ✅ Favorite toggle button */}
+          <button
+            onClick={toggleFavorite}
+            className={`px-4 py-2 rounded-md w-fit transition ${
+              isFavorite
+                ? 'bg-red-600 hover:bg-red-700'
+                : 'bg-gray-700 hover:bg-gray-600'
+            }`}
+          >
+            {isFavorite ? '💔 Favorilerden Kaldır' : '❤️ Favorilere Ekle'}
           </button>
 
           <div className="mt-10">
@@ -138,9 +203,9 @@ export default async function MovieDetailPage({ params }) {
                               <p className="text-sm text-gray-400">
                                 {new Date(
                                   cinema.showtime
-                                ).toLocaleTimeString("tr-TR", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
+                                ).toLocaleTimeString('tr-TR', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
                                 })}
                               </p>
                             </div>
