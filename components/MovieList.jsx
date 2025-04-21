@@ -13,7 +13,6 @@ const MovieList = () => {
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
 
-  // ✅ Load movies from Firestore "films" collection
   useEffect(() => {
     const fetchMovies = async () => {
       try {
@@ -57,7 +56,7 @@ const MovieList = () => {
         ? container.scrollLeft - scrollAmount
         : container.scrollLeft + scrollAmount;
 
-    smoothScrollTo(container, targetScroll, 500);
+    smoothScrollTo(container, targetScroll, 400);
   };
 
   const smoothScrollTo = (element, target, duration) => {
@@ -65,10 +64,14 @@ const MovieList = () => {
     const change = target - start;
     const startTime = performance.now();
 
+    const easeInOutQuad = (t) =>
+      t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
     const animateScroll = (currentTime) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      element.scrollLeft = start + change * easeInOutQuad(progress);
+      const easedProgress = easeInOutQuad(progress);
+      element.scrollLeft = start + change * easedProgress;
 
       if (progress < 1) {
         requestAnimationFrame(animateScroll);
@@ -77,9 +80,6 @@ const MovieList = () => {
 
     requestAnimationFrame(animateScroll);
   };
-
-  const easeInOutQuad = (t) =>
-    t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
   if (!movies.length) return null;
 
@@ -124,7 +124,7 @@ const MovieList = () => {
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
           }}
-          className="flex overflow-x-auto gap-8"
+          className="flex overflow-x-auto gap-8 no-scrollbar"
         >
           {movies.map((movie, index) => (
             <Link key={movie.slug || index} href={`/movies/${movie.slug}`}>
