@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   collection,
   addDoc,
@@ -39,7 +40,6 @@ export default function AddFilm() {
         querySnapshot.forEach((doc) => {
           data.push({ id: doc.id, ...doc.data() });
         });
-        console.log('Cinemas:', data);
         setCinemas(data);
       } catch (error) {
         console.error("Sinema salonları alınırken hata oluştu:", error);
@@ -93,7 +93,16 @@ export default function AddFilm() {
     }
 
     try {
-      // Firestore’a film kaydet
+      // Film var mı kontrolü
+      const existingFilmsSnapshot = await getDocs(collection(db, 'films'));
+      const existingFilms = existingFilmsSnapshot.docs.map((doc) => doc.data());
+      const isFilmExists = existingFilms.some((film) => film.slug === slug);
+
+      if (isFilmExists) {
+        setMessage('❌ Bu film zaten eklenmiş.');
+        return;
+      }
+
       await addDoc(collection(db, 'films'), {
         title,
         slug,
@@ -102,14 +111,13 @@ export default function AddFilm() {
         releaseDate: new Date(releaseDate),
         description: summary,
         trailerUrl,
-        imgSrc: posterUrl, // Poster URL burada eklenecek
+        imgSrc: posterUrl,
         rating,
         cinemas: cinemaArray,
         createdAt: serverTimestamp(),
       });
 
       setMessage('✅ Film eklendi!');
-      // Formu sıfırla
       setTitle('');
       setGenre('');
       setDuration('');
@@ -117,105 +125,86 @@ export default function AddFilm() {
       setSummary('');
       setRating('');
       setTrailerUrl('');
-      setPosterUrl(''); // URL alanını sıfırlıyoruz
+      setPosterUrl('');
       setSelectedCinemas([]);
       setCinemaShowtimes({});
     } catch (err) {
-      console.error("Firebase Hatası: ", err); // Hata detayı loglanıyor
+      console.error("Firebase Hatası: ", err);
       setMessage('❌ Hata: ' + err.message);
     }
   };
 
   return (
-    <div className="p-6 rounded-md text-white">
-      <h2 className="text-xl font-semibold mb-4">Yeni Film Ekle</h2>
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Film Adı"
-          className="w-full p-2 rounded bg-gray-800"
-        />
-        <input
-          value={genre}
-          onChange={(e) => setGenre(e.target.value)}
-          placeholder="Tür"
-          className="w-full p-2 rounded bg-gray-800"
-        />
-        <input
-          value={duration}
-          onChange={(e) => setDuration(e.target.value)}
-          placeholder="Süre (dk)"
-          type="number"
-          className="w-full p-2 rounded bg-gray-800"
-        />
-        <input
-          value={releaseDate}
-          onChange={(e) => setReleaseDate(e.target.value)}
-          placeholder="Vizyon Tarihi"
-          type="date"
-          className="w-full p-2 rounded bg-gray-800"
-        />
-        <input
-          value={rating}
-          onChange={(e) => setRating(e.target.value)}
-          placeholder="Puan (IMDB vb.)"
-          className="w-full p-2 rounded bg-gray-800"
-        />
-        <input
-          value={trailerUrl}
-          onChange={(e) => setTrailerUrl(e.target.value)}
-          placeholder="Fragman URL"
-          className="w-full p-2 rounded bg-gray-800"
-        />
-        <input
-          value={posterUrl}
-          onChange={(e) => setPosterUrl(e.target.value)}
-          placeholder="Poster URL"
-          className="w-full p-2 rounded bg-gray-800"
-        />
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="max-w-3xl mx-auto bg-gray-900 p-6 rounded-2xl shadow-2xl text-white"
+    >
+      <h2 className="text-2xl font-bold mb-6 text-center">🎬 Yeni Film Ekle</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {[
+          { value: title, set: setTitle, placeholder: 'Film Adı' },
+          { value: genre, set: setGenre, placeholder: 'Tür' },
+          { value: duration, set: setDuration, placeholder: 'Süre (dk)', type: 'number' },
+          { value: releaseDate, set: setReleaseDate, placeholder: 'Vizyon Tarihi', type: 'date' },
+          { value: rating, set: setRating, placeholder: 'Puan (IMDB vb.)' },
+          { value: trailerUrl, set: setTrailerUrl, placeholder: 'Fragman URL' },
+          { value: posterUrl, set: setPosterUrl, placeholder: 'Poster URL' },
+        ].map(({ value, set, placeholder, type = 'text' }, i) => (
+          <input
+            key={i}
+            value={value}
+            onChange={(e) => set(e.target.value)}
+            placeholder={placeholder}
+            type={type}
+            className="w-full p-3 rounded-xl bg-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+          />
+        ))}
+
         <textarea
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
           placeholder="Film Özeti"
-          className="w-full p-2 rounded bg-gray-800"
+          className="w-full p-3 rounded-xl bg-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
         />
 
-        <h3 className="text-lg font-semibold mt-6 mb-2">Sinema Salonları</h3>
+        <h3 className="text-lg font-semibold mt-6">🎥 Sinema Salonları</h3>
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Sinema ara..."
-          className="w-full p-2 mb-2 rounded bg-gray-700 text-white"
+          className="w-full p-2 rounded bg-gray-700 text-white mb-2"
         />
         <select
           onChange={handleCinemaSelect}
-          className="w-full p-2 bg-gray-700 rounded text-white"
+          className="w-full p-2 rounded bg-gray-700 text-white"
         >
           <option value="">Salon seç...</option>
-          {cinemas.length > 0 ? (
-            cinemas.map((cinema) => (
-              <option key={cinema.id} value={cinema.id}>
-                {cinema.name}
-              </option>
-            ))
-          ) : (
-            <option value="">Sinema bulunamadı</option>
-          )}
+          {cinemas.map((cinema) => (
+            <option key={cinema.id} value={cinema.id}>
+              {cinema.name}
+            </option>
+          ))}
         </select>
 
-        <div className="mt-4 space-y-3">
+        <div className="space-y-4 mt-4">
           {selectedCinemas.map((cinemaId) => {
             const cinema = cinemas.find((c) => c.id === cinemaId);
             return (
-              <div key={cinemaId} className="bg-gray-800 p-3 rounded">
-                <div className="flex justify-between items-center mb-2">
+              <motion.div
+                key={cinemaId}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-gray-800 p-4 rounded-xl shadow flex flex-col gap-2"
+              >
+                <div className="flex justify-between items-center">
                   <strong>{cinema?.name}</strong>
                   <button
                     type="button"
                     onClick={() => handleRemoveCinema(cinemaId)}
-                    className="text-red-400 text-sm"
+                    className="text-red-400 text-sm hover:underline"
                   >
                     Kaldır
                   </button>
@@ -224,21 +213,25 @@ export default function AddFilm() {
                   type="datetime-local"
                   value={cinemaShowtimes[cinemaId] || ''}
                   onChange={(e) => handleShowtimeChange(cinemaId, e.target.value)}
-                  className="w-full p-2 bg-gray-700 rounded text-white"
+                  className="w-full p-2 rounded bg-gray-700 text-white"
                 />
-              </div>
+              </motion.div>
             );
           })}
         </div>
 
         <button
           type="submit"
-          className="w-full bg-[#a020f0] py-2 rounded text-white font-semibold mt-4"
+          className="w-full bg-purple-600 hover:bg-purple-700 transition text-white font-bold py-3 rounded-xl mt-6 shadow-lg"
         >
           Filmi Ekle
         </button>
-        {message && <p className="mt-4 text-sm">{message}</p>}
+        {message && (
+          <p className={`mt-4 text-sm ${message.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>
+            {message}
+          </p>
+        )}
       </form>
-    </div>
+    </motion.div>
   );
 }

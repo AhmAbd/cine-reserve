@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { motion } from 'framer-motion';
 
 export default function SuspendUser({ userId, currentStatus }) {
   const [isSuspended, setIsSuspended] = useState(currentStatus);
   const [isAdmin, setIsAdmin] = useState(false); // Admin kontrolü için state ekledik
+  const [loading, setLoading] = useState(false); // Yükleniyor durumu için state
 
   useEffect(() => {
     const checkIfAdmin = async () => {
@@ -32,11 +34,18 @@ export default function SuspendUser({ userId, currentStatus }) {
       return;
     }
 
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      suspended: !isSuspended,
-    });
-    setIsSuspended(!isSuspended);
+    setLoading(true); // Yükleme başlat
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        suspended: !isSuspended,
+      });
+      setIsSuspended(!isSuspended);
+    } catch (error) {
+      console.error('Hata oluştu:', error);
+    } finally {
+      setLoading(false); // Yükleme tamamlandı
+    }
   };
 
   // Admin kullanıcıları için butonu render etmemek
@@ -45,13 +54,20 @@ export default function SuspendUser({ userId, currentStatus }) {
   }
 
   return (
-    <button
+    <motion.button
       onClick={toggleSuspension}
-      className={`px-3 py-1 text-sm rounded ${
-        isSuspended ? 'bg-red-500' : 'bg-green-500'
+      className={`px-6 py-3 text-sm rounded-lg transition duration-300 ${
+        isSuspended ? 'bg-red-600' : 'bg-green-600'
       } text-white`}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      disabled={loading}
     >
-      {isSuspended ? 'Askıyı Kaldır' : 'Askıya Al'}
-    </button>
+      {loading ? (
+        <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin mx-auto"></div>
+      ) : (
+        isSuspended ? 'Askıyı Kaldır' : 'Askıya Al'
+      )}
+    </motion.button>
   );
 }
