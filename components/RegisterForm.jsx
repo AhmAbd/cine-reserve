@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { auth, db } from "../lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -23,6 +24,16 @@ export default function RegisterPage() {
     role: "user",
     suspended: false,
   });
+  
+  const [mounted, setMounted] = useState(false); // Track if the component has mounted
+  const [success, setSuccess] = useState(false); // Track if registration is successful
+  
+  const router = useRouter(); // Initialize router
+
+  // Check if the component has mounted
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -59,14 +70,22 @@ export default function RegisterPage() {
         suspended: form.suspended,
       });
 
-      alert("Kayıt başarılı!");
+      setSuccess(true); // Set success state after successful registration
+      setTimeout(() => {
+        router.push("/login"); // Redirect to login after a short delay
+      }, 1500); // Redirect after 1.5 seconds
     } catch (err) {
       alert("Hata: " + err.message);
     }
   };
 
+  // Ensure that the router is available
+  if (!mounted) {
+    return null; // Don't render until the component is mounted
+  }
+
   return (
-    <div  style={outerPageStyle}>
+    <div style={outerPageStyle}>
       <div style={formContainerStyle}>
         <h1 style={headerStyle}>Üye Ol</h1>
         <form onSubmit={handleSubmit} style={formStyle}>
@@ -119,6 +138,8 @@ export default function RegisterPage() {
           </label>
 
           <button type="submit" style={buttonStyle}>Üye Ol</button>
+
+          {success && <p style={{ color: 'green', textAlign: 'center' }}>Kayıt başarılı! Yönlendiriliyorsunuz...</p>}
         </form>
       </div>
     </div>
