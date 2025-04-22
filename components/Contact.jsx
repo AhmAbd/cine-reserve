@@ -1,157 +1,243 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import countryCodes from '../utils/countryCodes';
 
 const Contact = () => {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [countryCode, setCountryCode] = useState(countryCodes[0].value); // Varsayılan ülke kodu
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  // Form state
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    countryCode: countryCodes[0].value,
+    message: ''
+  });
 
+  // UI state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+
+  // Handle form input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
-
+    setError('');
+    
     try {
-      // Firebase'e mesaj ekliyoruz
+      // Save to Firestore
       await addDoc(collection(db, 'messages'), {
-        name: `${firstName} ${lastName}`,
-        email,
-        phone: `${countryCode} ${phone}`,
-        message,
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        phone: `${formData.countryCode} ${formData.phone}`,
+        message: formData.message,
         isRead: false,
         timestamp: serverTimestamp(),
       });
 
-      // Formu sıfırlıyoruz
-      setFirstName('');
-      setLastName('');
-      setEmail('');
-      setPhone('');
-      setMessage('');
-      setCountryCode(countryCodes[0].value);
-      alert('Mesajınız gönderildi!');
+      // Reset form on success
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        countryCode: countryCodes[0].value,
+        message: ''
+      });
+      setSuccess(true);
     } catch (err) {
-      setError('Mesaj gönderilirken bir hata oluştu!');
+      setError('Mesajınız gönderilemedi. Lütfen bilgilerinizi kontrol edip tekrar deneyin.');
+      setShowErrorModal(true);
+      console.error('Firestore error:', err);
     } finally {
       setLoading(false);
     }
   };
 
+  // Auto-close modals after 3 seconds
+  useEffect(() => {
+    const timers = [];
+    
+    if (success) {
+      timers.push(setTimeout(() => setSuccess(false), 3000));
+    }
+    
+    if (showErrorModal) {
+      timers.push(setTimeout(() => setShowErrorModal(false), 3000));
+    }
+    
+    return () => timers.forEach(timer => clearTimeout(timer));
+  }, [success, showErrorModal]);
+
   return (
-    <div className="container mx-auto p-4">
-      <h2 className="text-2xl font-semibold text-center mb-6">İletişim Formu</h2>
-      {error && <p className="text-red-500 text-center">{error}</p>}
-      <form onSubmit={handleSubmit} className="max-w-lg mx-auto">
-        <div className="mb-4 flex space-x-4">
-          <div className="w-1/2">
-            <label htmlFor="firstName" className="block text-sm font-medium text-white-700">
-              Adınız
-            </label>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black p-4 sm:p-6 relative">
+      {/* Main Form Container */}
+      <div className={`w-full max-w-2xl bg-gray-900 rounded-3xl shadow-2xl p-6 sm:p-10 transition-all duration-300 z-10 ${
+        success || showErrorModal ? 'opacity-50 blur-sm' : 'opacity-100 blur-0'
+      }`}>
+        <h2 className="text-3xl sm:text-4xl font-bold text-center text-purple-500 mb-6 sm:mb-8 hover:scale-105 transition-transform duration-300">
+          İletişim Formu
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          {/* Name Fields */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="w-full sm:w-1/2 group">
+              <label className="block text-sm text-gray-300 mb-1">Adınız*</label>
+              <input
+                type="text"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-700 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                required
+              />
+            </div>
+            <div className="w-full sm:w-1/2 group">
+              <label className="block text-sm text-gray-300 mb-1">Soyadınız*</label>
+              <input
+                type="text"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-700 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Email */}
+          <div className="group">
+            <label className="block text-sm text-gray-300 mb-1">E-posta*</label>
             <input
-              type="text"
-              id="firstName"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className="w-full p-2 border border-white-300 rounded-md"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-700 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
               required
             />
           </div>
 
-          <div className="w-1/2">
-            <label htmlFor="lastName" className="block text-sm font-medium text-white-700">
-              Soyadınız
-            </label>
-            <input
-              type="text"
-              id="lastName"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className="w-full p-2 border border-white-300 rounded-md"
+          {/* Phone */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="w-full sm:w-1/3 group">
+              <label className="block text-sm text-gray-300 mb-1">Ülke Kodu*</label>
+              <select
+                name="countryCode"
+                value={formData.countryCode}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-700 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {countryCodes.map((code) => (
+                  <option key={code.value} value={code.value}>
+                    {code.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="w-full sm:w-2/3 group">
+              <label className="block text-sm text-gray-300 mb-1">Telefon*</label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-700 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Message */}
+          <div className="group">
+            <label className="block text-sm text-gray-300 mb-1">Mesajınız*</label>
+            <textarea
+              name="message"
+              value={formData.message}
+              onChange={handleChange}
+              rows="5"
+              className="w-full p-3 border border-gray-700 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
               required
             />
           </div>
-        </div>
 
-        <div className="mb-4">
-          <label htmlFor="email" className="block text-sm font-medium text-white-700">
-            E-posta
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-2 border border-white-300 rounded-md"
-            required
-          />
-        </div>
-
-        <div className="mb-4 flex">
-          <div className="w-1/4">
-            <label htmlFor="countryCode" className="block text-sm font-medium text-white-700">
-              Ülke Kodu
-            </label>
-            <select
-              id="countryCode"
-              value={countryCode}
-              onChange={(e) => setCountryCode(e.target.value)}
-              className="w-full p-2 border border-white-300 rounded-md"
+          {/* Submit Button */}
+          <div className="pt-2 text-center">
+            <button
+              type="submit"
+              disabled={loading}
+              className={`px-6 py-3 w-full sm:w-auto sm:px-8 rounded-xl font-bold transition-all duration-300 ${
+                loading
+                  ? 'bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 hover:scale-105 shadow-lg'
+              } text-white`}
             >
-              {countryCodes.map((code) => (
-                <option key={code.value} value={code.value} className={code.color}>
-                  {code.label}
-                </option>
-              ))}
-            </select>
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Gönderiliyor...
+                </span>
+              ) : 'Gönder'}
+            </button>
           </div>
-          <div className="w-3/4 pl-4">
-            <label htmlFor="phone" className="block text-sm font-medium text-white-700">
-              Telefon Numarası
-            </label>
-            <input
-              type="text"
-              id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full p-2 border border-white-300 rounded-md"
-              required
-            />
+        </form>
+      </div>
+
+      {/* Success Modal */}
+      {success && (
+        <div className="fixed inset-0 flex items-center justify-center z-20 animate-fade-in">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+          <div className="relative z-10 bg-gradient-to-br from-green-500 to-green-600 text-white p-6 sm:p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-scale-in">
+            <div className="text-center">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-green-100/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 sm:h-10 w-8 sm:w-10 text-green-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-bold mb-2">Mesajınız Gönderildi!</h3>
+              <p className="text-sm sm:text-base mb-4 sm:mb-6">En kısa sürede sizinle iletişime geçeceğiz.</p>
+              <div className="w-full bg-green-100/20 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-green-100 h-full rounded-full animate-countdown" style={{ animationDuration: '3s' }}></div>
+              </div>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="mb-4">
-          <label htmlFor="message" className="block text-sm font-medium text-white-700">
-            Mesajınız
-          </label>
-          <textarea
-            id="message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="w-full p-2 border border-white-300 rounded-md"
-            rows="4"
-            required
-          />
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-20 animate-fade-in">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+          <div className="relative z-10 bg-gradient-to-br from-red-500 to-red-600 text-white p-6 sm:p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-scale-in">
+            <div className="text-center">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-red-100/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 sm:h-10 w-8 sm:w-10 text-red-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-bold mb-2">Gönderim Başarısız!</h3>
+              <p className="text-sm sm:text-base mb-4 sm:mb-6">{error}</p>
+              <div className="w-full bg-red-100/20 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-red-100 h-full rounded-full animate-countdown" style={{ animationDuration: '3s' }}></div>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div className="mb-4 text-center">
-          <button
-            type="submit"
-            className="px-4 py-2 bg-purple-600 text-white rounded-md disabled:bg-gray-400"
-            disabled={loading}
-          >
-            {loading ? 'Gönderiliyor...' : 'Gönder'}
-          </button>
-        </div>
-      </form>
+      )}
     </div>
   );
 };
