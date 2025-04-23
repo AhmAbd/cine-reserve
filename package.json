@@ -12,6 +12,7 @@
     "@react-google-maps/api": "^2.20.6",
     "@stripe/react-stripe-js": "^3.6.0",
     "@stripe/stripe-js": "^7.1.0",
+    "clsx": "^2.1.1",
     "dotenv": "^16.5.0",
     "firebase": "^11.6.0",
     "firebase-admin": "^13.2.0",
