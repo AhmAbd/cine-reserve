@@ -17,7 +17,7 @@ export default function ClientLayout({ children }) {
   const isAdminPage = pathname.startsWith("/admin");
 
   // Admin sayfasında header ve footer'ı gizlemek için koşul ekleyin
-  const hiddenPaths = ["/login", "/register", "/reset-password"];
+  const hiddenPaths = ["/login", "/register", "/reset-password","/forgot-password"];
   const showHeader = !hiddenPaths.includes(pathname) && !isAdminPage;
   const showFooter = !hiddenPaths.includes(pathname) && !isAdminPage;
 
