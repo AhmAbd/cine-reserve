@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { db } from '../../../lib/firebase';
 import {
   collection,
@@ -14,15 +15,15 @@ import {
 import Link from 'next/link';
 import useRequireAuth from '../../../hooks/useRequireAuth';
 
-export default function MovieDetailPage({ params }) {
-  const slug = params.slug;
+export default function MovieDetailPage() {
+  const params = useParams();
+  const slug = params?.slug;
   const { user, loading: authLoading } = useRequireAuth();
   const [movie, setMovie] = useState(null);
   const [cinemaData, setCinemaData] = useState([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Fetch movie & cinemas
   useEffect(() => {
     const fetchMovie = async () => {
       const filmSnap = await getDocs(collection(db, 'films'));
@@ -54,14 +55,12 @@ export default function MovieDetailPage({ params }) {
       setLoading(false);
     };
 
-    fetchMovie();
+    if (slug) fetchMovie();
   }, [slug]);
 
-  // ✅ Check if movie is in favorites
   useEffect(() => {
     const checkFavorites = async () => {
       if (!user) return;
-
       const userRef = doc(db, 'users', user.uid);
       const userSnap = await getDoc(userRef);
       const favorites = userSnap.data()?.favorites || [];
@@ -71,19 +70,15 @@ export default function MovieDetailPage({ params }) {
     if (user && movie) checkFavorites();
   }, [user, movie]);
 
-  // ✅ Handle add/remove
   const toggleFavorite = async () => {
     if (!user) return;
-
     const userRef = doc(db, 'users', user.uid);
     await updateDoc(userRef, {
       favorites: isFavorite ? arrayRemove(slug) : arrayUnion(slug),
     });
-
     setIsFavorite(!isFavorite);
   };
 
-  // ✅ Group showtimes
   const sessionsByDate = {};
   cinemaData.forEach((cinema) => {
     const dateKey = new Date(cinema.showtime).toLocaleDateString('tr-TR', {
@@ -166,7 +161,6 @@ export default function MovieDetailPage({ params }) {
 
           <p className="text-gray-300 leading-relaxed">{movie.description}</p>
 
-          {/* ✅ Favorite toggle button */}
           <button
             onClick={toggleFavorite}
             className={`px-4 py-2 rounded-md w-fit transition ${

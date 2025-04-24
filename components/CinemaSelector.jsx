@@ -8,7 +8,7 @@ import { doc, getDoc } from 'firebase/firestore';
 export default function CinemaSelector() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const movieId = searchParams.get('movie'); // this is Firestore doc ID, not slug
+  const movieId = searchParams.get('movie'); // this is Firestore doc ID
 
   const [cinemaOptions, setCinemaOptions] = useState([]);
   const [movieTitle, setMovieTitle] = useState('');
@@ -58,7 +58,7 @@ export default function CinemaSelector() {
   }, [movieId]);
 
   const handleSelect = (cinemaId) => {
-    router.push(`/tickets/select-seat?movie=${movieId}&cinema=${cinemaId}`);
+    router.push(`/tickets/select-type?movie=${movieId}&cinema=${cinemaId}`);
   };
 
   if (loading) return <div className="text-white p-10">Yükleniyor...</div>;
