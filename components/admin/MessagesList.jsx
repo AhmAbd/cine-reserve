@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { db } from '../../lib/firebase';
 import { useRouter } from 'next/navigation';
-import { getAuth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import {
   collection,
   onSnapshot,
@@ -12,6 +12,7 @@ import {
   doc,
   updateDoc,
 } from 'firebase/firestore';
+import { motion } from 'framer-motion';
 
 const MessagesList = () => {
   const router = useRouter();
@@ -22,28 +23,37 @@ const MessagesList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [loading, setLoading] = useState(true);
 
+  const redirectToLogin = useCallback(() => {
+    router.push('/admin/login');
+  }, [router]);
+
+  // Admin kontrolü
   useEffect(() => {
-    // Kullanıcıyı kontrol et ve admin olup olmadığını kontrol et
-    const checkIfAdmin = async () => {
-      const auth = getAuth();
-      const user = auth.currentUser;
-
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const token = await user.getIdTokenResult();
-        if (!token.claims.admin) {
-          // Admin değilse login sayfasına yönlendir
-          router.push('/admin/login');
+        try {
+          const token = await user.getIdTokenResult();
+          if (!token.claims.admin) {
+            redirectToLogin();
+          }
+        } catch (err) {
+          console.error('Token alma hatası:', err);
+          redirectToLogin();
         }
       } else {
-        // Giriş yapmamışsa login sayfasına yönlendir
-        router.push('/admin/login');
+        redirectToLogin();
       }
-    };
+      setLoading(false);
+    });
 
-    checkIfAdmin();
+    return () => unsubscribe();
+  }, [redirectToLogin]);
 
-    // Veritabanı işlemleri
+  // Mesajları yükleme
+  useEffect(() => {
     const q = query(collection(db, 'messages'), orderBy('timestamp', 'desc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -57,7 +67,7 @@ const MessagesList = () => {
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
   const handleMarkAsRead = async (id) => {
     try {
@@ -113,103 +123,199 @@ const MessagesList = () => {
     });
 
   const renderMessage = (msg) => (
-    <li
+    <motion.li
       key={msg.id}
-      className="p-6 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 shadow-lg transition-all transform hover:scale-105 hover:shadow-2xl"
+      className="p-6 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-purple-500/20 shadow-lg transition-all transform hover:scale-105 hover:shadow-2xl"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
     >
-      <p><strong>Ad Soyad:</strong> {msg.name}</p>
-      <p><strong>Telefon:</strong> {msg.phone}</p>
-      <p><strong>E-posta:</strong> {msg.email}</p>
-      <p><strong>Mesaj:</strong> {msg.message}</p>
+      <p className="text-white"><strong className="text-purple-400">Ad Soyad:</strong> {msg.name}</p>
+      <p className="text-white"><strong className="text-purple-400">Telefon:</strong> {msg.phone}</p>
+      <p className="text-white"><strong className="text-purple-400">E-posta:</strong> {msg.email}</p>
+      <p className="text-white"><strong className="text-purple-400">Mesaj:</strong> {msg.message}</p>
       <p className="text-sm text-gray-400 mt-2">
         {msg.timestamp?.toDate?.().toLocaleString?.() || 'Tarih yok'}
       </p>
 
       {!msg.isRead && (
-        <button
+        <motion.button
           onClick={() => handleMarkAsRead(msg.id)}
           className="mt-4 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-all transform hover:scale-105"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           Okundu olarak işaretle
-        </button>
+        </motion.button>
       )}
 
       <div className="mt-4">
         <textarea
           placeholder="Yanıtınızı yazın..."
-          className="w-full p-3 border rounded-md mb-3 dark:bg-gray-900 dark:border-gray-700 transition-all transform focus:outline-none focus:ring-2 focus:ring-blue-600"
+          className="w-full p-3 border rounded-md bg-gray-900 border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all"
           value={selectedEmail === msg.email ? replyText : ''}
           onChange={(e) => {
             setReplyText(e.target.value);
             setSelectedEmail(msg.email);
           }}
         />
-        <button
+        <motion.button
           onClick={handleReply}
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all transform hover:scale-105"
+          className="mt-2 px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-all transform hover:scale-105"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           Yanıtla
-        </button>
+        </motion.button>
       </div>
-    </li>
+    </motion.li>
   );
 
+  if (loading) {
+    return <div className="min-h-screen w-screen bg-black text-white flex items-center justify-center">Yükleniyor...</div>;
+  }
+
   return (
-    <div className="max-w-7xl mx-auto py-10 px-4 dark:bg-black-900 dark:text-white">
-      <h2 className="text-3xl font-bold mb-6 text-center">Gelen Mesajlar</h2>
+    <div className="min-h-screen w-screen bg-black flex flex-col">
+      {/* Background Gradient */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-b from-black via-purple-950 to-black pointer-events-none z-0"
+        initial={{
+          background: 'linear-gradient(180deg, #000000 0%, #000000 50%, #000000 100%)',
+        }}
+        animate={{
+          background: 'linear-gradient(180deg, #000000 0%, #2d1a4b 50%, #000000 100%)',
+        }}
+        transition={{ duration: 3, ease: 'easeInOut' }}
+      />
 
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <input
-          type="text"
-          placeholder="İsim, telefon veya e-posta ara..."
-          className="p-3 border rounded-md w-full md:max-w-md dark:bg-gray-900 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+      {/* Static Stars */}
+      {[...Array(20)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1 h-1 bg-white rounded-full pointer-events-none"
+          initial={{
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            scale: 0,
+            opacity: 0,
+          }}
+          animate={{
+            scale: Math.random() * 0.5 + 0.5,
+            opacity: Math.random() * 0.6 + 0.2,
+          }}
+          transition={{
+            duration: Math.random() * 2 + 1,
+            ease: 'easeInOut',
+            delay: Math.random() * 1,
+          }}
         />
-        <div className="flex gap-4">
-          <div>
-            <label className="text-sm block">Başlangıç Tarihi</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="p-3 border rounded-md dark:bg-gray-900 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            />
-          </div>
-          <div>
-            <label className="text-sm block">Bitiş Tarihi</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="p-3 border rounded-md dark:bg-gray-900 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            />
-          </div>
-        </div>
-      </div>
+      ))}
 
-      <div className="grid md:grid-cols-2 gap-8">
-        <div>
-          <h3 className="text-2xl font-semibold mb-4 text-red-600">📩 Okunmamış Mesajlar</h3>
-          {filterMessages(unreadMessages).length === 0 ? (
-            <p>Henüz okunmamış mesaj yok.</p>
-          ) : (
-            <ul className="space-y-6">
-              {filterMessages(unreadMessages).map(renderMessage)}
-            </ul>
-          )}
-        </div>
+      {/* Nebula Glow */}
+      <motion.div
+        className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-3xl pointer-events-none"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 0.4 }}
+        transition={{ duration: 2, ease: 'easeOut' }}
+      />
+      <motion.div
+        className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-full blur-3xl pointer-events-none"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 0.5 }}
+        transition={{ duration: 2.5, ease: 'easeOut' }}
+      />
 
-        <div>
-          <h3 className="text-2xl font-semibold mb-4 text-green-600">📨 Okunan Mesajlar</h3>
-          {filterMessages(readMessages).length === 0 ? (
-            <p>Henüz okunan mesaj yok.</p>
-          ) : (
-            <ul className="space-y-6">
-              {filterMessages(readMessages).map(renderMessage)}
-            </ul>
-          )}
-        </div>
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <motion.div
+          className="relative z-10 max-w-7xl mx-auto py-10 px-4 text-white"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <motion.h2
+            className="text-3xl font-extrabold mb-6 text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+          >
+            📬 Gelen Mesajlar
+          </motion.h2>
+
+          <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <motion.input
+              type="text"
+              placeholder="İsim, telefon veya e-posta ara..."
+              className="p-3 border rounded-md w-full md:max-w-md bg-gray-900 border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            />
+            <div className="flex gap-4">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+              >
+                <label className="text-sm block text-gray-400">Başlangıç Tarihi</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="p-3 border rounded-md bg-gray-900 border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all"
+                />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+              >
+                <label className="text-sm block text-gray-400">Bitiş Tarihi</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="p-3 border rounded-md bg-gray-900 border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all"
+                />
+              </motion.div>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+            >
+              <h3 className="text-2xl font-semibold mb-4 text-red-600">📩 Okunmamış Mesajlar</h3>
+              {filterMessages(unreadMessages).length === 0 ? (
+                <p className="text-gray-400">Henüz okunmamış mesaj yok.</p>
+              ) : (
+                <ul className="space-y-6">
+                  {filterMessages(unreadMessages).map(renderMessage)}
+                </ul>
+              )}
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+            >
+              <h3 className="text-2xl font-semibold mb-4 text-green-600">📨 Okunan Mesajlar</h3>
+              {filterMessages(readMessages).length === 0 ? (
+                <p className="text-gray-400">Henüz okunan mesaj yok.</p>
+              ) : (
+                <ul className="space-y-6">
+                  {filterMessages(readMessages).map(renderMessage)}
+                </ul>
+              )}
+            </motion.div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
