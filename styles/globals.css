@@ -2,183 +2,364 @@
 @import 'swiper/css';
 @import 'swiper/css/navigation';
 @import 'swiper/css/pagination';
+@import 'swiper/css/effect-fade';
+
+:root {
+  --dark-900: #0f172a;
+  --dark-800: #1e293b;
+  --dark-700: #334155;
+  --accent: #7c3aed;
+  --accent-light: #8b5cf6;
+  --accent-dark: #6d28d9;
+  --text-primary: #f8fafc;
+  --text-secondary: #e2e8f0;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
 
 body {
-    background-color: #1f1f1f;
-    color: white;
-    font-family: 'Roboto', sans-serif;
-    margin: 0;
-  }
-  
-  h2 {
-    color: #e5e7eb; 
-  }
-  
-  a {
-    color: #fff;
-  }
-  
-  a:hover {
-    color: #34d399; 
-  }
-  
+  background-color: var(--dark-900);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 20%),
+    radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 20%);
+  background-attachment: fixed;
+}
+
+/* Header Styles */
+header {
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+header:hover {
+  background: rgba(30, 41, 59, 0.95);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+header img {
+  border-radius: 0.75rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+header img:hover {
+  transform: rotate(2deg) scale(1.05);
+  box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4);
+}
+
+.nav-link {
+  position: relative;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover {
+  color: white;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.login-button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  padding: 0.6rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 6px rgba(124, 58, 237, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: 0.5s;
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px rgba(124, 58, 237, 0.4);
+}
+
+.login-button:hover::before {
+  left: 100%;
+}
+
+/* Movie/Cinema Cards */
+.movie-card,
+.cinema-card {
+  background: var(--dark-800);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  animation: slideIn 0.6s ease-out forwards;
+}
+
+.movie-card::before,
+.cinema-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, transparent 60%, rgba(0, 0, 0, 0.7));
+  z-index: 1;
+}
+
+.movie-card:hover,
+.cinema-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(124, 58, 237, 0.2);
+}
+
+.movie-card img,
+.cinema-card img {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.movie-card:hover img,
+.cinema-card:hover img {
+  transform: scale(1.1);
+}
+
+.movie-card .content,
+.cinema-card .content {
+  padding: 1.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.movie-card h3,
+.cinema-card h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.movie-card p,
+.cinema-card p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Button Styles */
+.button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  padding: 0.8rem 2rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 4px 6px rgba(124, 58, 237, 0.3);
+  transition: all 0.3s ease;
+  display: inline-block;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 20px rgba(124, 58, 237, 0.4);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: translateX(-100%);
+  transition: 0.5s;
+}
+
+.button:hover::after {
+  transform: translateX(100%);
+}
+
+/* Special Effects */
+.now-playing-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: #ef4444;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  animation: pulse 2s infinite;
+  z-index: 3;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
   header {
-    background-color: #2d3748; 
-    padding: 1.5rem 0;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    transition: background-color 0.3s ease-in-out;
+    padding: 0.75rem 0;
   }
-  
-  header:hover {
-    background-color: #232a34; 
-  }
-  
-  header nav a {
-    font-size: 1.1rem;
-    font-weight: 500;
-    transition: color 0.3s ease-in-out;
-  }
-  
-  header img {
-    border-radius: 0.5rem;
-  }
-  
-  section {
-    padding: 4rem 0;
-  }
-  
+
   .movie-card,
   .cinema-card {
-    background-color: #374151; 
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
-    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    animation: none;
   }
-  
-  .movie-card:hover,
-  .cinema-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-  }
-  
+
   .movie-card img,
   .cinema-card img {
-    width: 100%;
     height: 200px;
-    object-fit: cover;
   }
-  
-  .movie-card .content,
-  .cinema-card .content {
-    padding: 1.25rem;
-  }
-  
-  .movie-card h3,
-  .cinema-card h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #f1f5f9; 
-  }
-  
-  .movie-card p,
-  .cinema-card p {
-    color: #a0aec0; 
-  }
-  
+
   .button {
-    background-color: #10b981; 
-    color: white;
-    padding: 0.8rem 2rem;
-    border-radius: 1.5rem;
-    transition: background-color 0.3s ease-in-out;
+    padding: 0.7rem 1.5rem;
+    font-size: 0.9rem;
   }
-  
-  .button:hover {
-    background-color: #34d399; 
-  }
-  
-  .card-wrapper {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1.5rem;
-  }
-  
-  .card-wrapper img {
-    border-radius: 1rem;
-  }
-  
-  @media screen and (max-width: 768px) {
-    header {
-      padding: 1rem 0;
-    }
-  
-    header nav {
-      flex-direction: column;
-      gap: 1rem;
-    }
-  
-    .movie-card img,
-    .cinema-card img {
-      height: 150px;
-    }
-  }
-  
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  img:hover {
-    transform: scale(1.02);
-    transition: transform 0.3s ease;
-  }
-  
-  /* Custom color palette */
-  :root {
-    --dark-700: #2d3748;
-    --dark-800: #374151;
-    --accent: #10b981;
-    --accent-light: #34d399;
-  }
-  
-  header.custom-header {
-    background-color: #2d3748;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    transition: background-color 0.3s ease-in-out;
-  }
-  
-  header.custom-header:hover {
-    background-color: #232a34;
-  }
-  
-  .nav-link {
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: white;
-    text-decoration: none;
-    transition: color 0.3s ease;
-  }
-  
-  .nav-link:hover {
-    color: #a020f0;
-  }
-  
-  .login-button {
-    background-color: #a020f0;
-    color: white;
-    padding: 0.6rem 1.5rem;
-    border-radius: 1.5rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: background-color 0.3s ease;
-  }
-  
-  .login-button:hover {
-    background-color: #c084fc;
-  }
-  
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--dark-800);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-light);
+}
+
+/* Swiper Customization */
+.swiper {
+  padding: 20px 0 40px !important;
+}
+
+.swiper-slide {
+  opacity: 0.7;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.swiper-slide-active {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.swiper-pagination-bullet {
+  background: var(--text-secondary) !important;
+  opacity: 0.6 !important;
+}
+
+.swiper-pagination-bullet-active {
+  background: var(--accent) !important;
+  opacity: 1 !important;
+  transform: scale(1.2);
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  color: var(--accent) !important;
+  background: rgba(30, 41, 59, 0.7);
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50%;
+  backdrop-filter: blur(5px);
+  transition: all 0.3s ease;
+}
+
+.swiper-button-next:hover,
+.swiper-button-prev:hover {
+  background: rgba(30, 41, 59, 0.9);
+  transform: scale(1.1);
+}
+
+/* Floating Animation for Featured Items */
+.featured-movie {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Page Transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.4s ease;
+}
+
+.page-exit {
+  opacity: 1;
+}
+
+.page-exit-active {
+  opacity: 0;
+  transition: all 0.4s ease;
+}
