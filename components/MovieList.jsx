@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import MovieCard from "./MovieCard.jsx";
@@ -12,6 +13,7 @@ const MovieList = () => {
   const [showButtons, setShowButtons] = useState(false);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
+  const [isHovered, setIsHovered] = useState(null);
 
   useEffect(() => {
     const fetchMovies = async () => {
@@ -32,8 +34,8 @@ const MovieList = () => {
     if (!container) return;
 
     const { scrollLeft, scrollWidth, clientWidth } = container;
-    setAtStart(scrollLeft <= 0);
-    setAtEnd(scrollLeft + clientWidth >= scrollWidth - 1);
+    setAtStart(scrollLeft <= 10); // Added small buffer
+    setAtEnd(scrollLeft + clientWidth >= scrollWidth - 10); // Added small buffer
   };
 
   useEffect(() => {
@@ -44,19 +46,20 @@ const MovieList = () => {
     checkScrollPosition();
 
     return () => container.removeEventListener("scroll", checkScrollPosition);
-  }, []);
+  }, [movies]); // Added movies as dependency to recalculate when data loads
 
   const scroll = (direction) => {
     const container = containerRef.current;
     if (!container) return;
 
-    const scrollAmount = container.offsetWidth * 0.8;
-    const targetScroll =
-      direction === "left"
-        ? container.scrollLeft - scrollAmount
-        : container.scrollLeft + scrollAmount;
+    const scrollAmount = direction === "left" ? -container.offsetWidth : container.offsetWidth;
+    const targetScroll = container.scrollLeft + scrollAmount;
 
-    smoothScrollTo(container, targetScroll, 400);
+    // Ensure we don't scroll past boundaries
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    const boundedTarget = Math.max(0, Math.min(targetScroll, maxScroll));
+
+    smoothScrollTo(container, boundedTarget, 500);
   };
 
   const smoothScrollTo = (element, target, duration) => {
@@ -75,6 +78,9 @@ const MovieList = () => {
 
       if (progress < 1) {
         requestAnimationFrame(animateScroll);
+      } else {
+        // Force recheck of scroll position after animation completes
+        checkScrollPosition();
       }
     };
 
@@ -84,39 +90,91 @@ const MovieList = () => {
   if (!movies.length) return null;
 
   return (
-    <section
-      className="py-8 relative group"
+    <motion.section
+      className="py-12 relative group"
       onMouseEnter={() => setShowButtons(true)}
       onMouseLeave={() => setShowButtons(false)}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
     >
       <div className="max-w-7xl mx-auto px-4">
-        <h2 className="text-3xl font-semibold text-gray-100 mb-6">
+        <motion.h2 
+          className="text-3xl font-bold text-white mb-8 font-cinematic"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+        >
           Vizyondakiler
-        </h2>
+          <motion.div 
+            className="h-1 bg-gradient-to-r from-purple-600 to-indigo-600 mt-2"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+          />
+        </motion.h2>
 
-        {showButtons && (
-          <button
-            onClick={() => scroll("left")}
-            disabled={atStart}
-            className={`absolute left-2 top-1/2 transform -translate-y-1/2 bg-gray-700 bg-opacity-70 hover:bg-opacity-90 text-white p-3 rounded-full shadow-lg z-10 transition-opacity ${
-              atStart ? "opacity-30 cursor-not-allowed" : "opacity-100"
-            }`}
-          >
-            ◀
-          </button>
-        )}
+        <AnimatePresence>
+          {showButtons && (
+            <motion.button
+              onClick={() => scroll("left")}
+              disabled={atStart}
+              className={`absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 text-purple-400 p-4 rounded-full shadow-lg z-10 transition-all duration-300 ${
+                atStart ? "opacity-30 cursor-not-allowed" : "opacity-100 hover:scale-110"
+              }`}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: atStart ? 0.3 : 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </motion.button>
+          )}
+        </AnimatePresence>
 
-        {showButtons && (
-          <button
-            onClick={() => scroll("right")}
-            disabled={atEnd}
-            className={`absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-700 bg-opacity-70 hover:bg-opacity-90 text-white p-3 rounded-full shadow-lg z-10 transition-opacity ${
-              atEnd ? "opacity-30 cursor-not-allowed" : "opacity-100"
-            }`}
-          >
-            ▶
-          </button>
-        )}
+        <AnimatePresence>
+          {showButtons && (
+            <motion.button
+              onClick={() => scroll("right")}
+              disabled={atEnd}
+              className={`absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 text-purple-400 p-4 rounded-full shadow-lg z-10 transition-all duration-300 ${
+                atEnd ? "opacity-30 cursor-not-allowed" : "opacity-100 hover:scale-110"
+              }`}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: atEnd ? 0.3 : 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </motion.button>
+          )}
+        </AnimatePresence>
 
         <div
           ref={containerRef}
@@ -124,18 +182,26 @@ const MovieList = () => {
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
           }}
-          className="flex overflow-x-auto gap-8 no-scrollbar"
+          className="flex overflow-x-auto gap-8 no-scrollbar pb-4 scroll-smooth" // Added scroll-smooth
         >
           {movies.map((movie, index) => (
-            <Link key={movie.slug || index} href={`/movies/${movie.slug}`}>
-              <div className="transition-transform transform hover:scale-105">
-                <MovieCard movie={movie} />
-              </div>
-            </Link>
+            <motion.div
+              key={movie.slug || index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1, duration: 0.5 }}
+              whileHover={{ scale: 1.03 }}
+              onMouseEnter={() => setIsHovered(index)}
+              onMouseLeave={() => setIsHovered(null)}
+            >
+              <Link href={`/movies/${movie.slug}`}>
+                <MovieCard movie={movie} isHovered={isHovered === index} />
+              </Link>
+            </motion.div>
           ))}
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 };
 
