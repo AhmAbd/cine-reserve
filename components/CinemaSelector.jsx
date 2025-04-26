@@ -8,7 +8,7 @@ import { doc, getDoc } from 'firebase/firestore';
 export default function CinemaSelector() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const movieId = searchParams.get('movie'); // this is Firestore doc ID
+  const movieId = searchParams.get('movie');
 
   const [cinemaOptions, setCinemaOptions] = useState([]);
   const [movieTitle, setMovieTitle] = useState('');
@@ -17,30 +17,50 @@ export default function CinemaSelector() {
   useEffect(() => {
     const fetchCinemas = async () => {
       if (!movieId) {
-        console.warn('No movie ID found in URL');
+        console.warn('Film ID bulunamadı');
         return;
       }
 
       try {
+        // 1. Film bilgilerini al
         const filmRef = doc(db, 'films', movieId);
         const filmSnap = await getDoc(filmRef);
 
         if (!filmSnap.exists()) {
-          console.warn('Film not found:', movieId);
+          console.warn('Film bulunamadı:', movieId);
           return;
         }
 
         const film = filmSnap.data();
         setMovieTitle(film.title || 'Film');
 
+        // 2. Sinema ve salon bilgilerini al
         const cinemaData = await Promise.all(
-          (film.cinemas || []).map(async ({ id, showtime }) => {
-            const cinemaSnap = await getDoc(doc(db, 'cinemas', id));
+          (film.cinemas || []).map(async (cinemaItem) => {
+            // Sinema bilgilerini al
+            const cinemaSnap = await getDoc(doc(db, 'cinemas', cinemaItem.id));
             if (!cinemaSnap.exists()) return null;
 
+            // Salon bilgisi için iki farklı yaklaşım:
+            let hallDisplay = null;
+            
+            // Eğer cinemaItem içinde hallNumber varsa (films koleksiyonundan geliyor)
+            if (cinemaItem.hallNumber) {
+              hallDisplay = `Salon ${cinemaItem.hallNumber}`;
+            } 
+            // Eğer hallId varsa (halls koleksiyonundan alacağız)
+            else if (cinemaItem.hallId) {
+              const hallSnap = await getDoc(doc(db, 'halls', cinemaItem.hallId));
+              if (hallSnap.exists()) {
+                hallDisplay = hallSnap.data().name || `Salon ${hallSnap.id}`;
+              }
+            }
+
             return {
-              id,
-              showtime,
+              uniqueKey: `${cinemaItem.id}-${cinemaItem.hallId || cinemaItem.hallNumber || 'no-hall'}-${cinemaItem.showtime}`,
+              id: cinemaItem.id,
+              showtime: cinemaItem.showtime,
+              hallDisplay, // Görüntülenecek salon bilgisi
               ...cinemaSnap.data()
             };
           })
@@ -48,7 +68,7 @@ export default function CinemaSelector() {
 
         setCinemaOptions(cinemaData.filter(Boolean));
       } catch (err) {
-        console.error('CinemaSelector fetch error:', err);
+        console.error('Hata:', err);
       } finally {
         setLoading(false);
       }
@@ -57,8 +77,8 @@ export default function CinemaSelector() {
     fetchCinemas();
   }, [movieId]);
 
-  const handleSelect = (cinemaId) => {
-    router.push(`/tickets/select-type?movie=${movieId}&cinema=${cinemaId}`);
+  const handleSelect = (cinemaId, hallId) => {
+    router.push(`/tickets/select-type?movie=${movieId}&cinema=${cinemaId}${hallId ? `&hall=${hallId}` : ''}`);
   };
 
   if (loading) return <div className="text-white p-10">Yükleniyor...</div>;
@@ -76,8 +96,8 @@ export default function CinemaSelector() {
         <div className="space-y-4">
           {cinemaOptions.map((cinema) => (
             <button
-              key={cinema.id}
-              onClick={() => handleSelect(cinema.id)}
+              key={cinema.uniqueKey}
+              onClick={() => handleSelect(cinema.id, cinema.hallId)}
               className="block w-full bg-[#2d3748] hover:bg-[#a020f0] text-white text-left px-4 py-3 rounded-md transition"
             >
               <div className="font-semibold text-lg">{cinema.name}</div>
@@ -85,6 +105,9 @@ export default function CinemaSelector() {
                 Seans: {new Date(cinema.showtime).toLocaleString('tr-TR')}
               </div>
               <div className="text-sm text-gray-400">Yer: {cinema.location}</div>
+              {cinema.hallDisplay && (
+                <div className="text-sm text-gray-400">{cinema.hallDisplay}</div>
+              )}
             </button>
           ))}
         </div>
