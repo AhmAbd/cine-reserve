@@ -34,33 +34,24 @@ export default function CinemaSelector() {
         const film = filmSnap.data();
         setMovieTitle(film.title || 'Film');
 
-        // 2. Sinema ve salon bilgilerini al
+        // 2. Sinema ve salon bilgilerini al (sadece films koleksiyonundan)
         const cinemaData = await Promise.all(
           (film.cinemas || []).map(async (cinemaItem) => {
             // Sinema bilgilerini al
             const cinemaSnap = await getDoc(doc(db, 'cinemas', cinemaItem.id));
             if (!cinemaSnap.exists()) return null;
 
-            // Salon bilgisi için iki farklı yaklaşım:
-            let hallDisplay = null;
-            
-            // Eğer cinemaItem içinde hallNumber varsa (films koleksiyonundan geliyor)
-            if (cinemaItem.hallNumber) {
-              hallDisplay = `Salon ${cinemaItem.hallNumber}`;
-            } 
-            // Eğer hallId varsa (halls koleksiyonundan alacağız)
-            else if (cinemaItem.hallId) {
-              const hallSnap = await getDoc(doc(db, 'halls', cinemaItem.hallId));
-              if (hallSnap.exists()) {
-                hallDisplay = hallSnap.data().name || `Salon ${hallSnap.id}`;
-              }
-            }
+            // Sadece films koleksiyonundaki hallNumber kullanılıyor
+            const hallDisplay = cinemaItem.hallNumber 
+              ? `Salon ${cinemaItem.hallNumber}`
+              : null;
 
             return {
-              uniqueKey: `${cinemaItem.id}-${cinemaItem.hallId || cinemaItem.hallNumber || 'no-hall'}-${cinemaItem.showtime}`,
+              uniqueKey: `${cinemaItem.id}-${cinemaItem.hallNumber || 'no-hall'}-${cinemaItem.showtime}`,
               id: cinemaItem.id,
               showtime: cinemaItem.showtime,
-              hallDisplay, // Görüntülenecek salon bilgisi
+              hallDisplay,
+              hallId: cinemaItem.hallNumber, // hallNumber'ı hallId olarak da saklayabiliriz
               ...cinemaSnap.data()
             };
           })

@@ -7,7 +7,9 @@ import {
   getDocs,
   query,
   where,
-  orderBy
+  orderBy,
+  doc,
+  getDoc
 } from 'firebase/firestore';
 import useRequireAuth from '../../hooks/useRequireAuth';
 
@@ -24,13 +26,49 @@ const TicketsPage = () => {
         const q = query(
           collection(db, 'tickets'),
           where('userId', '==', user.uid),
-          orderBy('timestamp', 'desc') // ✅ sort by latest
+          orderBy('timestamp', 'desc')
         );
         const querySnapshot = await getDocs(q);
-        const fetchedTickets = querySnapshot.docs.map(doc => doc.data());
+        
+        const fetchedTickets = await Promise.all(
+          querySnapshot.docs.map(async (docSnapshot) => {
+            const ticket = docSnapshot.data();
+            
+            // Film bilgilerini al
+            let hallInfo = '—';
+            let movieTitle = ticket.movieName || 'Film Bilinmiyor';
+            
+            if (ticket.movieId) {
+              const movieRef = doc(db, 'films', ticket.movieId);
+              const movieSnap = await getDoc(movieRef);
+              
+              if (movieSnap.exists()) {
+                const movieData = movieSnap.data();
+                movieTitle = movieData.title || movieTitle;
+                
+                // İlgili sinema bilgisini bul
+                const cinemaInfo = movieData.cinemas?.find(
+                  c => c.id === ticket.cinemaId
+                );
+                
+                // Salon bilgisini al (hallNumber direkt films'ten geliyor)
+                if (cinemaInfo?.hallNumber) {
+                  hallInfo = ` ${cinemaInfo.hallNumber}`;
+                }
+              }
+            }
+
+            return {
+              ...ticket,
+              movieName: movieTitle,
+              hallDisplay: hallInfo
+            };
+          })
+        );
+
         setTickets(fetchedTickets);
       } catch (err) {
-        console.error('Error fetching tickets:', err);
+        console.error('Biletler alınırken hata:', err);
       } finally {
         setLoading(false);
       }
@@ -60,7 +98,7 @@ const TicketsPage = () => {
                 className="bg-[#2b2b2b] rounded-xl shadow-md p-5 space-y-3 border border-purple-800"
               >
                 <div className="text-xl font-semibold text-purple-300">
-                  🎬 {ticket.movieName || 'Film Bilinmiyor'}
+                  🎬 {ticket.movieName}
                 </div>
 
                 <div className="text-sm text-gray-400">
@@ -73,6 +111,11 @@ const TicketsPage = () => {
                 <div className="text-sm text-gray-400">
                   <span className="font-medium text-white">Sinema:</span>{' '}
                   {ticket.cinemaName || '—'}
+                </div>
+
+                <div className="text-sm text-gray-400">
+                  <span className="font-medium text-white">Salon:</span>{' '}
+                  {ticket.hallDisplay}
                 </div>
 
                 <div className="text-sm text-gray-400">
