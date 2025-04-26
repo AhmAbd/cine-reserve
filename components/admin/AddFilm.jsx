@@ -35,10 +35,10 @@ export default function AddFilm() {
 
   // Sinema ve salon bilgileri
   const [cinemas, setCinemas] = useState([]);
-  const [selectedCinema, setSelectedCinema] = useState('');
-  const [cinemaHalls, setCinemaHalls] = useState([]); // Sinemanın salonları
-  const [selectedHalls, setSelectedHalls] = useState([]);
-  const [hallShowtimes, setHallShowtimes] = useState({});
+  const [selectedCinemas, setSelectedCinemas] = useState([]);
+  const [cinemaHalls, setCinemaHalls] = useState({}); // { cinemaId: [hall1, hall2] }
+  const [selectedHalls, setSelectedHalls] = useState([]); // { cinemaId, hallId, hallNumber }
+  const [hallShowtimes, setHallShowtimes] = useState({}); // { hallId: showtime }
 
   // UI durumları
   const [message, setMessage] = useState('');
@@ -63,44 +63,64 @@ export default function AddFilm() {
   }, []);
 
   useEffect(() => {
-    if (selectedCinema) {
-      // Seçilen sinemanın hallNumber bilgilerini al
-      const selected = cinemas.find(c => c.id === selectedCinema);
-      if (selected && selected.hallNumber) {
-        // Eğer hallNumber string ise array'e çevir
-        const halls = typeof selected.hallNumber === 'string' 
-          ? [selected.hallNumber] 
-          : selected.hallNumber || [];
-        
-        setCinemaHalls(halls.map((hall, index) => ({
-          id: `${selectedCinema}-${index}`,
-          name: hall,
-          cinemaId: selectedCinema
-        })));
-      } else {
-        setCinemaHalls([]);
+    // Seçilen sinemaların salon bilgilerini yükle
+    const loadHalls = async () => {
+      const hallsData = {};
+      
+      for (const cinemaId of selectedCinemas) {
+        const cinema = cinemas.find(c => c.id === cinemaId);
+        if (cinema) {
+          hallsData[cinemaId] = Array.isArray(cinema.halls) 
+            ? cinema.halls 
+            : cinema.halls 
+              ? [cinema.halls] 
+              : [];
+        }
       }
-    } else {
-      setCinemaHalls([]);
-    }
-  }, [selectedCinema, cinemas]);
+      
+      setCinemaHalls(hallsData);
+    };
+
+    loadHalls();
+  }, [selectedCinemas, cinemas]);
 
   const handleCinemaSelect = (e) => {
-    setSelectedCinema(e.target.value);
-    setSelectedHalls([]);
-    setHallShowtimes({});
+    const cinemaId = e.target.value;
+    if (cinemaId && !selectedCinemas.includes(cinemaId)) {
+      setSelectedCinemas([...selectedCinemas, cinemaId]);
+    }
   };
 
-  const handleHallSelect = (e) => {
-    const hallId = e.target.value;
-    if (hallId && !selectedHalls.includes(hallId)) {
-      setSelectedHalls([...selectedHalls, hallId]);
+  const handleRemoveCinema = (cinemaId) => {
+    setSelectedCinemas(selectedCinemas.filter(id => id !== cinemaId));
+    
+    // Bu sinemaya ait salonları kaldır
+    setSelectedHalls(selectedHalls.filter(hall => hall.cinemaId !== cinemaId));
+    
+    // Bu sinemaya ait showtime'ları kaldır
+    const newShowtimes = {...hallShowtimes};
+    selectedHalls
+      .filter(hall => hall.cinemaId === cinemaId)
+      .forEach(hall => delete newShowtimes[hall.hallId]);
+    setHallShowtimes(newShowtimes);
+  };
+
+  const handleHallSelect = (e, cinemaId) => {
+    const hallName = e.target.value;
+    if (hallName && cinemaHalls[cinemaId]?.includes(hallName)) {
+      const hallId = `${cinemaId}-${hallName}`;
+      if (!selectedHalls.some(h => h.hallId === hallId)) {
+        setSelectedHalls([
+          ...selectedHalls,
+          { cinemaId, hallId, hallNumber: hallName }
+        ]);
+      }
     }
   };
 
   const handleRemoveHall = (hallId) => {
-    setSelectedHalls(selectedHalls.filter(id => id !== hallId));
-    const newShowtimes = { ...hallShowtimes };
+    setSelectedHalls(selectedHalls.filter(h => h.hallId !== hallId));
+    const newShowtimes = {...hallShowtimes};
     delete newShowtimes[hallId];
     setHallShowtimes(newShowtimes);
   };
@@ -146,16 +166,13 @@ export default function AddFilm() {
         return;
       }
 
-      // Sinema salonu bilgilerini hazırla
-      const hallsData = selectedHalls.map(hallId => {
-        const hall = cinemaHalls.find(h => h.id === hallId);
-        return {
-          id: selectedCinema,
-          hallId: hallId,
-          hallNumber: hall?.name || `Salon ${hallId}`,
-          showtime: hallShowtimes[hallId] || ''
-        };
-      }).filter(hall => hall.showtime);
+      // Seçili salonlar için showtime kontrolü
+      const hallsData = selectedHalls.map(hall => ({
+        id: hall.cinemaId,
+        hallId: hall.hallId,
+        hallNumber: hall.hallNumber,
+        showtime: hallShowtimes[hall.hallId] || ''
+      })).filter(hall => hall.showtime);
 
       if (hallsData.length === 0) {
         setMessage('❌ Seçili salonlar için seans saati girin.');
@@ -168,7 +185,7 @@ export default function AddFilm() {
         title,
         slug,
         genre,
-        duration: `${duration} dk`,
+        duration: `${duration} `,
         releaseDate: new Date(releaseDate),
         description: summary,
         trailerUrl,
@@ -194,8 +211,8 @@ export default function AddFilm() {
       setLanguage('');
       setDirector('');
       setCast('');
-      setSelectedCinema('');
-      setCinemaHalls([]);
+      setSelectedCinemas([]);
+      setCinemaHalls({});
       setSelectedHalls([]);
       setHallShowtimes({});
     } catch (err) {
@@ -275,80 +292,116 @@ export default function AddFilm() {
           
           {/* Sinema Seçimi */}
           <div className="mb-4">
-            <label className="block text-sm text-gray-400 mb-2">Sinema Seçin</label>
-            <select
-              value={selectedCinema}
-              onChange={handleCinemaSelect}
-              className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-              required
-            >
-              <option value="">Sinema seçin...</option>
-              {cinemas.map(cinema => (
-                <option key={cinema.id} value={cinema.id}>
-                  {cinema.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Salon Seçimi (sadece sinema seçildiğinde görünür) */}
-          {selectedCinema && cinemaHalls.length > 0 && (
-            <div className="mb-4">
-              <label className="block text-sm text-gray-400 mb-2">Salon Seçin</label>
+            <label className="block text-sm text-gray-400 mb-2">Sinema Ekle</label>
+            <div className="flex gap-2">
               <select
-                onChange={handleHallSelect}
-                className="w-full p-3 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                onChange={handleCinemaSelect}
+                className="flex-1 p-3 rounded-xl bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                value=""
               >
-                <option value="">Salon seçin...</option>
-                {cinemaHalls.map(hall => (
-                  <option key={hall.id} value={hall.id}>
-                    {hall.name}
-                  </option>
-                ))}
+                <option value="">Sinema seçin...</option>
+                {cinemas
+                  .filter(cinema => !selectedCinemas.includes(cinema.id))
+                  .map(cinema => (
+                    <option key={cinema.id} value={cinema.id}>
+                      {cinema.name}
+                    </option>
+                  ))}
               </select>
             </div>
-          )}
+          </div>
 
-          {/* Seçili Salonlar */}
-          <div className="space-y-3 mt-4">
-            {selectedHalls.map(hallId => {
-              const hall = cinemaHalls.find(h => h.id === hallId);
+          {/* Seçili Sinemalar ve Salonları */}
+          <div className="space-y-4">
+            {selectedCinemas.map(cinemaId => {
+              const cinema = cinemas.find(c => c.id === cinemaId);
+              const halls = cinemaHalls[cinemaId] || [];
+              const cinemaSelectedHalls = selectedHalls.filter(h => h.cinemaId === cinemaId);
+
               return (
-                <motion.div
-                  key={hallId}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <motion.div 
+                  key={cinemaId}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   className="bg-gray-800 p-4 rounded-xl border border-gray-700"
                 >
                   <div className="flex justify-between items-center mb-3">
-                    <div>
-                      <strong>{hall?.name || `Salon ${hallId}`}</strong>
-                    </div>
+                    <h4 className="font-bold">{cinema?.name}</h4>
                     <button
                       type="button"
-                      onClick={() => handleRemoveHall(hallId)}
+                      onClick={() => handleRemoveCinema(cinemaId)}
                       className="text-red-400 hover:text-red-300 text-sm"
                     >
-                      Kaldır
+                      Sinemayı Kaldır
                     </button>
                   </div>
-                  <input
-                    type="datetime-local"
-                    value={hallShowtimes[hallId] || ''}
-                    onChange={(e) => handleShowtimeChange(hallId, e.target.value)}
-                    required
-                    className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600"
-                  />
+
+                  {/* Salon Seçimi */}
+                  {halls.length > 0 ? (
+                    <div className="mb-3">
+                      <label className="block text-sm text-gray-400 mb-2">Salon Ekle</label>
+                      <div className="flex gap-2">
+                        <select
+                          onChange={(e) => handleHallSelect(e, cinemaId)}
+                          className="flex-1 p-2 rounded bg-gray-700 border border-gray-600"
+                          value=""
+                        >
+                          <option value="">Salon seçin...</option>
+                          {halls
+                            .filter(hall => 
+                              !selectedHalls.some(h => 
+                                h.cinemaId === cinemaId && h.hallNumber === hall
+                              )
+                            )
+                            .map((hall, i) => (
+                              <option key={`${cinemaId}-${hall}`} value={hall}>
+                                {hall}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-yellow-400 text-sm mb-3">
+                      Bu sinemada tanımlı salon bulunamadı.
+                    </div>
+                  )}
+
+                  {/* Seçili Salonlar */}
+                  <div className="space-y-3">
+                    {cinemaSelectedHalls.map(hall => (
+                      <motion.div
+                        key={hall.hallId}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-gray-700 p-3 rounded-lg border border-gray-600"
+                      >
+                        <div className="flex justify-between items-center mb-2">
+                          <div>
+                            <strong>{hall.hallNumber}</strong>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveHall(hall.hallId)}
+                            className="text-red-400 hover:text-red-300 text-sm"
+                          >
+                            Kaldır
+                          </button>
+                        </div>
+                        <input
+                          type="datetime-local"
+                          value={hallShowtimes[hall.hallId] || ''}
+                          onChange={(e) => handleShowtimeChange(hall.hallId, e.target.value)}
+                          required
+                          className="w-full p-2 rounded bg-gray-600 text-white border border-gray-500"
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
                 </motion.div>
               );
             })}
           </div>
-
-          {selectedCinema && cinemaHalls.length === 0 && (
-            <div className="text-yellow-400 text-sm mt-2">
-              Bu sinemada tanımlı salon bulunamadı. Lütfen sinema yönetiminden salon eklemesini isteyin.
-            </div>
-          )}
         </div>
 
         {/* Gönder Butonu */}

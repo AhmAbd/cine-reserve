@@ -52,7 +52,7 @@ export default function CinemaDetailPage({ params }) {
                   duration: data.duration,
                   imgSrc: data.imgSrc,
                   showtime: showtimeDate,
-                  hallNumber: s.hallNumber || 'Bilinmeyen Salon', // Fetch hallNumber with fallback
+                  halls: s.halls || 'Bilinmeyen Salon', // Fetch hallNumber with fallback
                 });
               }
             }
@@ -297,7 +297,7 @@ export default function CinemaDetailPage({ params }) {
                               hour: '2-digit',
                               minute: '2-digit',
                             })}{' '}
-                            <span className="text-gray-300">({movie.hallNumber})</span>
+                            <span className="text-gray-300">({movie.halls})</span>
                           </p>
                           <Link
                             href={`/tickets/select-seat?movie=${movie.slug}&cinema=${params.slug}`}

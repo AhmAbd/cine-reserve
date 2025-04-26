@@ -1,69 +1,91 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { auth } from '../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { db } from '../../lib/firebase';
 import { motion } from 'framer-motion';
 
 export default function AddCinema() {
   const [name, setName] = useState('');
-  const [hallNumber, setHallNumber] = useState('');
+  const [hallCount, setHallCount] = useState('');
   const [location, setLocation] = useState('');
   const [seats, setSeats] = useState(40);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Kullanıcı kimlik doğrulama durumunu kontrol et
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        user.getIdTokenResult().then((token) => {
+          console.log('Kullanıcı giriş yaptı:', user.uid, 'Admin:', token.claims.admin);
+        }).catch((err) => {
+          console.error('Token hatası:', err);
+        });
+      } else {
+        console.log('Kullanıcı giriş yapmamış');
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // URL dostu slug oluşturma
   const generateSlug = (text) =>
     text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
-  const checkCinemaExists = async (cinemaName, hallNum) => {
-    const q = query(
-      collection(db, 'cinemas'),
-      where('name', '==', cinemaName),
-      where('hallNumber', '==', hallNum)
-    );
-    const querySnapshot = await getDocs(q);
-    return !querySnapshot.empty;
-  };
-
+  // Form gönderim işlemi
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
 
     try {
-      if (!hallNumber) {
-        setMessage('❌ Salon numarası giriniz');
+      // Giriş doğrulamaları
+      if (!name.trim()) {
+        setMessage('❌ Sinema adı giriniz');
+        setLoading(false);
+        return;
+      }
+      if (!location.trim()) {
+        setMessage('❌ Konum giriniz');
+        setLoading(false);
+        return;
+      }
+      const hallCountNum = parseInt(hallCount) || 0;
+      if (hallCountNum <= 0) {
+        setMessage('❌ En az bir salon eklemelisiniz');
         setLoading(false);
         return;
       }
 
-      const slug = generateSlug(`${name}-${hallNumber}`);
-      const cinemaExists = await checkCinemaExists(name, hallNumber);
+      // Salon numaralarını oluştur (Salon 1, Salon 2, ...)
+      const hallNumbers = Array.from({ length: hallCountNum }, (_, i) => `Salon ${i + 1}`);
+      console.log('Oluşturulan salonlar:', hallNumbers);
 
-      if (cinemaExists) {
-        setMessage('❌ Bu sinema salonu ve salon numarası zaten mevcut');
-        setLoading(false);
-        return;
-      }
-
+      // Sinemayı cinemas koleksiyonuna ekle
+      const slug = generateSlug(name);
+      console.log('Sinema ekleniyor:', { name, location, seats, slug, hallNumbers });
+      
       await addDoc(collection(db, 'cinemas'), {
         name,
-        hallNumber,
-        slug,
         location,
         seats: Number(seats),
-        createdAt: serverTimestamp()
+        slug,
+        halls: hallNumbers,
+        createdAt: serverTimestamp(),
       });
 
-      setMessage('✅ Sinema ve salon başarıyla eklendi!');
+      setMessage('✅ Sinema ve salonlar başarıyla eklendi!');
       setName('');
-      setHallNumber('');
+      setHallCount('');
       setLocation('');
       setSeats(40);
     } catch (err) {
-      console.error(err);
-      setMessage('❌ Hata oluştu: ' + err.message);
+      console.error('Firestore hatası:', err, 'Kod:', err.code, 'Mesaj:', err.message);
+      setMessage(`❌ Hata oluştu: ${err.code || err.message}`);
     }
 
     setLoading(false);
@@ -93,13 +115,14 @@ export default function AddCinema() {
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Salon Numarası</label>
+            <label className="block text-sm text-gray-400 mb-1">Salon Sayısı</label>
             <motion.input
               whileFocus={{ scale: 1.02 }}
-              type="text"
-              value={hallNumber}
-              onChange={(e) => setHallNumber(e.target.value)}
-              placeholder="Ör: Salon 1"
+              type="number"
+              value={hallCount}
+              onChange={(e) => setHallCount(e.target.value)}
+              min="1"
+              placeholder="Ör: 3"
               required
               className="w-full p-3 bg-gray-900 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
             />
@@ -138,14 +161,14 @@ export default function AddCinema() {
           disabled={loading}
           className="w-full bg-[#a020f0] py-3 rounded-xl text-white font-semibold hover:bg-purple-700 transition shadow-md"
         >
-          {loading ? '⏳ Yükleniyor...' : ' Sinema ve Salon Ekle'}
+          {loading ? '⏳ Yükleniyor...' : 'Sinema ve Salon Ekle'}
         </motion.button>
       </form>
 
       {message && (
         <motion.p
           className={`mt-5 text-center text-sm ${
-            message.startsWith('✅') ? 'text-green-400' : 'text-red-400'
+            message.startsWith('✅') ? 'text-green-400' : message.startsWith('⚠️') ? 'text-yellow-400' : 'text-red-400'
           }`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

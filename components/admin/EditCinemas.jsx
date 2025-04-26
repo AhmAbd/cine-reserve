@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc, updateDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { motion } from 'framer-motion';
@@ -51,33 +51,17 @@ export default function EditCinemaPage() {
         setName(data.name);
         setLocation(data.location);
         setSeats(data.seats?.toString() ?? '');
+        
+        // Doğrudan cinemas koleksiyonundaki halls alanını kullan
+        const hallList = Array.isArray(data.halls) 
+          ? data.halls.map(hall => ({ original: hall, current: hall }))
+          : [];
+        setHalls(hallList);
       } else {
         alert('Sinema bulunamadı.');
         router.push('/admin/cinemas');
         return;
       }
-
-      // Fetch hall numbers from films collection
-      const filmsSnapshot = await getDocs(collection(db, 'films'));
-      const hallSet = new Set();
-
-      filmsSnapshot.forEach((docSnap) => {
-        const filmData = docSnap.data();
-        if (Array.isArray(filmData.cinemas)) {
-          filmData.cinemas.forEach((s) => {
-            if (s.id === id && s.hallNumber) {
-              hallSet.add(s.hallNumber);
-            }
-          });
-        }
-      });
-
-      // Convert to array of { original, current } objects
-      const hallList = Array.from(hallSet).map((hall) => ({
-        original: hall,
-        current: hall,
-      }));
-      setHalls(hallList);
     } catch (error) {
       console.error('Veri alınırken hata:', error);
       alert('Bir hata oluştu.');
@@ -93,6 +77,22 @@ export default function EditCinemaPage() {
     );
   };
 
+  // Remove a hall
+  const handleRemoveHall = (index) => {
+    setHalls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Add new hall
+  const handleAddHall = () => {
+    if (newHallNumber.trim()) {
+      setHalls(prev => [...prev, { 
+        original: newHallNumber, 
+        current: newHallNumber 
+      }]);
+      setNewHallNumber('');
+    }
+  };
+
   const handleUpdate = async () => {
     try {
       // Validate inputs
@@ -101,59 +101,16 @@ export default function EditCinemaPage() {
         return;
       }
 
+      // Güncellenmiş salon listesi
+      const updatedHalls = halls.map(hall => hall.current).filter(hall => hall.trim());
+
       // Update cinemas collection
       await updateDoc(doc(db, 'cinemas', id), {
         name,
         location,
         seats: parseInt(seats) || 0,
+        halls: updatedHalls.length > 0 ? updatedHalls : ['Bilinmeyen Salon']
       });
-
-      // Update films collection with edited and new halls
-      const filmsSnapshot = await getDocs(collection(db, 'films'));
-      const updatePromises = [];
-
-      // Prepare hall mappings: { originalHall: newHall }
-      const hallMap = {};
-      halls.forEach((hall) => {
-        if (hall.original !== hall.current && hall.current.trim()) {
-          hallMap[hall.original] = hall.current;
-        }
-      });
-
-      // Update existing films
-      filmsSnapshot.forEach((docSnap) => {
-        const filmData = docSnap.data();
-        if (Array.isArray(filmData.cinemas)) {
-          const updatedCinemas = filmData.cinemas.map((s) => {
-            if (s.id === id && hallMap[s.hallNumber]) {
-              return { ...s, hallNumber: hallMap[s.hallNumber] };
-            }
-            return s;
-          });
-
-          // Append new hall if provided
-          if (newHallNumber.trim()) {
-            updatedCinemas.push({ id, hallNumber: newHallNumber, showtime: '' });
-          }
-
-          updatePromises.push(
-            updateDoc(doc(db, 'films', docSnap.id), {
-              cinemas: updatedCinemas,
-            })
-          );
-        }
-      });
-
-      // If no films exist and a new hall is provided, create a placeholder film
-      if (filmsSnapshot.empty && newHallNumber.trim()) {
-        const filmId = `placeholder-${id}`;
-        await setDoc(doc(db, 'films', filmId), {
-          title: 'Placeholder Film',
-          cinemas: [{ id, hallNumber: newHallNumber, showtime: '' }],
-        });
-      } else {
-        await Promise.all(updatePromises);
-      }
 
       setSuccess(true);
       setTimeout(() => {
@@ -217,31 +174,47 @@ export default function EditCinemaPage() {
 
         {/* Existing Halls */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Mevcut Salonlar</label>
+          <label className="block text-sm font-medium mb-2">Salonlar</label>
           {halls.length > 0 ? (
             halls.map((hall, index) => (
-              <motion.input
-                key={`hall-${index}`}
-                value={hall.current}
-                onChange={(e) => handleHallChange(index, e.target.value)}
-                className="w-full p-4 mb-2 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder={`Salon ${index + 1}`}
-                whileFocus={{ scale: 1.02 }}
-              />
+              <div key={`hall-${index}`} className="flex items-center mb-2">
+                <motion.input
+                  value={hall.current}
+                  onChange={(e) => handleHallChange(index, e.target.value)}
+                  className="w-full p-4 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder={`Salon ${index + 1}`}
+                  whileFocus={{ scale: 1.02 }}
+                />
+                <button
+                  onClick={() => handleRemoveHall(index)}
+                  className="ml-2 p-2 text-red-400 hover:text-red-300"
+                >
+                  ✕
+                </button>
+              </div>
             ))
           ) : (
             <p className="text-gray-400 text-sm">Henüz salon eklenmemiş.</p>
           )}
         </div>
 
-        {/* New Hall */}
-        <motion.input
-          value={newHallNumber}
-          onChange={(e) => setNewHallNumber(e.target.value)}
-          className="w-full p-4 mb-6 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Yeni Salon Numarası (örn. Salon 1)"
-          whileFocus={{ scale: 1.02 }}
-        />
+        {/* Add New Hall */}
+        <div className="flex mb-6">
+          <motion.input
+            value={newHallNumber}
+            onChange={(e) => setNewHallNumber(e.target.value)}
+            className="flex-1 p-4 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Yeni Salon Ekle (örn. Salon 1)"
+            whileFocus={{ scale: 1.02 }}
+          />
+          <motion.button
+            onClick={handleAddHall}
+            whileHover={{ scale: 1.05 }}
+            className="ml-2 px-4 bg-green-600 rounded hover:bg-green-700 transition-all"
+          >
+            Ekle
+          </motion.button>
+        </div>
 
         <div className="flex justify-between">
           <motion.button
