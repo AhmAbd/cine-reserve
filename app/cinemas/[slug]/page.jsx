@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { motion, AnimatePresence } from "framer-motion";
-import { db } from "../../../lib/firebase";
-import { doc, getDoc, getDocs, collection } from "firebase/firestore";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import MovieCard from "../../../components/MovieCard";
+import { motion, AnimatePresence } from 'framer-motion';
+import { db } from '../../../lib/firebase';
+import { doc, getDoc, getDocs, collection } from 'firebase/firestore';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import MovieCard from '../../../components/MovieCard';
 
 export default function CinemaDetailPage({ params }) {
   const [cinema, setCinema] = useState(null);
@@ -22,17 +22,17 @@ export default function CinemaDetailPage({ params }) {
         const cinemaId = params.slug;
 
         // Fetch cinema data
-        const cinemaRef = doc(db, "cinemas", cinemaId);
+        const cinemaRef = doc(db, 'cinemas', cinemaId);
         const cinemaSnap = await getDoc(cinemaRef);
 
         if (!cinemaSnap.exists()) {
-          throw new Error("Sinema bulunamadı");
+          throw new Error('Sinema bulunamadı');
         }
 
         setCinema(cinemaSnap.data());
 
         // Fetch showings
-        const filmsSnap = await getDocs(collection(db, "films"));
+        const filmsSnap = await getDocs(collection(db, 'films'));
         const now = new Date();
         const showingsList = [];
 
@@ -52,6 +52,7 @@ export default function CinemaDetailPage({ params }) {
                   duration: data.duration,
                   imgSrc: data.imgSrc,
                   showtime: showtimeDate,
+                  hallNumber: s.hallNumber || 'Bilinmeyen Salon', // Fetch hallNumber with fallback
                 });
               }
             }
@@ -61,7 +62,7 @@ export default function CinemaDetailPage({ params }) {
         // Group by date
         const groupedByDate = {};
         showingsList.forEach((item) => {
-          const dateKey = item.showtime.toISOString().split("T")[0];
+          const dateKey = item.showtime.toISOString().split('T')[0];
           if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
           groupedByDate[dateKey].push(item);
         });
@@ -76,7 +77,7 @@ export default function CinemaDetailPage({ params }) {
         setSortedDates(sortedDateKeys);
         setLoading(false);
       } catch (error) {
-        console.error("Error fetching cinema data:", error);
+        console.error('Error fetching cinema data:', error);
         setError(error.message);
         setLoading(false);
       }
@@ -273,10 +274,10 @@ export default function CinemaDetailPage({ params }) {
                   className="text-2xl font-semibold mb-6 pb-2 border-b-2 border-purple-600 inline-block"
                   whileHover={{ scale: 1.02 }}
                 >
-                  {new Date(date).toLocaleDateString("tr-TR", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
+                  {new Date(date).toLocaleDateString('tr-TR', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
                   })}
                 </motion.h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -292,10 +293,11 @@ export default function CinemaDetailPage({ params }) {
                         <MovieCard movie={movie} />
                         <div className="mt-4 flex items-center justify-between">
                           <p className="text-purple-400 font-medium">
-                            {movie.showtime.toLocaleTimeString("tr-TR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {movie.showtime.toLocaleTimeString('tr-TR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}{' '}
+                            <span className="text-gray-300">({movie.hallNumber})</span>
                           </p>
                           <Link
                             href={`/tickets/select-seat?movie=${movie.slug}&cinema=${params.slug}`}
@@ -343,10 +345,10 @@ export default function CinemaDetailPage({ params }) {
       </div>
 
       <style jsx global>{`
-        @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap");
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
 
         .font-cinematic {
-          font-family: "Montserrat", sans-serif;
+          font-family: 'Montserrat', sans-serif;
         }
       `}</style>
     </div>

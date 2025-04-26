@@ -1,17 +1,19 @@
 'use client';
 
+import React from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
-import { motion } from 'framer-motion';
-import { FaEdit, FaTrash } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaEdit, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
 export default function CinemasPage() {
   const [cinemas, setCinemas] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [openCinemaId, setOpenCinemaId] = useState(null); // Track open dropdown
   const router = useRouter();
 
   useEffect(() => {
@@ -33,14 +35,44 @@ export default function CinemasPage() {
 
   const fetchCinemas = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'cinemas'));
-      const cinemasList = querySnapshot.docs.map((doc) => ({
+      // Fetch cinemas
+      const cinemaSnapshot = await getDocs(collection(db, 'cinemas'));
+      const cinemasList = cinemaSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setCinemas(cinemasList); // Corrected: setCinemas instead of set jobbCinemas
+      console.log('Cinemas List:', cinemasList); // Debug: Log cinemas
+
+      // Fetch hall numbers from films collection
+      const filmsSnapshot = await getDocs(collection(db, 'films'));
+      const hallMap = {};
+
+      filmsSnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (Array.isArray(data.cinemas)) {
+          data.cinemas.forEach((s) => {
+            if (s.id && s.hallNumber) {
+              if (!hallMap[s.id]) {
+                hallMap[s.id] = new Set();
+              }
+              hallMap[s.id].add(s.hallNumber);
+            }
+          });
+        }
+      });
+      console.log('Hall Map:', hallMap); // Debug: Log hall mappings
+
+      // Merge hall numbers into cinemas list
+      const enrichedCinemas = cinemasList.map((cinema) => ({
+        ...cinema,
+        halls: hallMap[cinema.id]
+          ? Array.from(hallMap[cinema.id])
+          : ['Bilinmeyen Salon'],
+      }));
+
+      setCinemas(enrichedCinemas);
     } catch (error) {
-      console.error('Error fetching cinemas: ', error);
+      console.error('Error fetching cinemas or halls:', error);
     } finally {
       setLoading(false);
     }
@@ -55,12 +87,70 @@ export default function CinemasPage() {
       setCinemas((prev) => prev.filter((cinema) => cinema.id !== id));
     } catch (error) {
       console.error('Silme hatası:', error);
-      alert('Silme işlemi başarısız oldu.');
+      alert('Sinema silme işlemi başarısız oldu.');
+    }
+  };
+
+  const handleDeleteHall = async (cinemaId, hallNumber) => {
+    const confirm = window.confirm(`"${hallNumber}" salonunu silmek istediğinize emin misiniz?`);
+    if (!confirm) return;
+
+    try {
+      // Fetch all films
+      const filmsSnapshot = await getDocs(collection(db, 'films'));
+      const updatePromises = [];
+
+      filmsSnapshot.forEach((docSnap) => {
+        const filmDoc = docSnap.data();
+        if (Array.isArray(filmDoc.cinemas)) {
+          // Filter out entries with matching cinemaId and hallNumber
+          const updatedCinemas = filmDoc.cinemas.filter(
+            (s) => !(s.id === cinemaId && s.hallNumber === hallNumber)
+          );
+          if (updatedCinemas.length !== filmDoc.cinemas.length) {
+            // Only update if something was removed
+            updatePromises.push(
+              updateDoc(doc(db, 'films', docSnap.id), {
+                cinemas: updatedCinemas,
+              })
+            );
+          }
+        }
+      });
+
+      // Execute all updates
+      await Promise.all(updatePromises);
+
+      // Update local state
+      setCinemas((prev) =>
+        prev.map((cinema) => {
+          if (cinema.id === cinemaId) {
+            const updatedHalls = cinema.halls.filter((hall) => hall !== hallNumber);
+            return {
+              ...cinema,
+              halls: updatedHalls.length > 0 ? updatedHalls : ['Bilinmeyen Salon'],
+            };
+          }
+          return cinema;
+        })
+      );
+
+      // If no halls remain, optionally close the dropdown
+      if (cinemas.find((c) => c.id === cinemaId).halls.length === 1 && hallNumber !== 'Bilinmeyen Salon') {
+        setOpenCinemaId(null);
+      }
+    } catch (error) {
+      console.error('Salon silme hatası:', error);
+      alert('Salon silme işlemi başarısız oldu.');
     }
   };
 
   const handleEdit = (id) => {
     router.push(`/admin/cinemas/edit/${id}`);
+  };
+
+  const toggleDropdown = (id) => {
+    setOpenCinemaId(openCinemaId === id ? null : id);
   };
 
   const filteredCinemas = cinemas.filter((cinema) =>
@@ -203,37 +293,94 @@ export default function CinemasPage() {
               </thead>
               <tbody>
                 {filteredCinemas.map((cinema, index) => (
-                  <motion.tr
-                    key={cinema.id}
-                    className="border-b border-gray-700"
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    whileHover={{ backgroundColor: 'rgba(55, 65, 81, 0.5)' }}
-                    transition={{ delay: index * 0.05, duration: 0.2 }}
-                  >
-                    <td className="px-6 py-4 font-medium">{cinema.name}</td>
-                    <td className="px-6 py-4">{cinema.location}</td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <motion.button
-                        onClick={() => handleEdit(cinema.id)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg"
-                        whileHover={{ scale: 1.05, backgroundColor: '#2563eb' }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <FaEdit />
-                        Düzenle
-                      </motion.button>
-                      <motion.button
-                        onClick={() => handleDelete(cinema.id)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-lg"
-                        whileHover={{ scale: 1.05, backgroundColor: '#dc2626' }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <FaTrash />
-                        Sil
-                      </motion.button>
-                    </td>
-                  </motion.tr>
+                  <React.Fragment key={cinema.id}>
+                    <motion.tr
+                      className="border-b border-gray-700 cursor-pointer"
+                      initial={{ opacity: 0, x: -30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      whileHover={{ backgroundColor: 'rgba(55, 65, 81, 0.5)' }}
+                      transition={{ delay: index * 0.05, duration: 0.2 }}
+                      onClick={() => toggleDropdown(cinema.id)}
+                    >
+                      <td className="px-6 py-4 font-medium flex items-center justify-between">
+                        {cinema.name}
+                        <motion.span
+                          animate={{ rotate: openCinemaId === cinema.id ? 180 : 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          {openCinemaId === cinema.id ? <FaChevronUp /> : <FaChevronDown />}
+                        </motion.span>
+                      </td>
+                      <td className="px-6 py-4">{cinema.location}</td>
+                      <td className="px-6 py-4 text-right space-x-2">
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent row click
+                            handleEdit(cinema.id);
+                          }}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg"
+                          whileHover={{ scale: 1.05, backgroundColor: '#2563eb' }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <FaEdit />
+                          Düzenle
+                        </motion.button>
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent row click
+                            handleDelete(cinema.id);
+                          }}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-lg"
+                          whileHover={{ scale: 1.05, backgroundColor: '#dc2626' }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <FaTrash />
+                          Sil
+                        </motion.button>
+                      </td>
+                    </motion.tr>
+                    <AnimatePresence>
+                      {openCinemaId === cinema.id && (
+                        <motion.tr
+                          key={`${cinema.id}-dropdown`}
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="bg-gray-900/50"
+                        >
+                          <td colSpan="3" className="px-6 py-4">
+                            <div className="flex flex-wrap gap-2">
+                              {cinema.halls.map((hall, i) => (
+                                <motion.span
+                                  key={`hall-${cinema.id}-${i}`}
+                                  initial={{ opacity: 1 }}
+                                  exit={{ opacity: 0, scale: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="inline-flex items-center bg-purple-600/20 text-purple-300 px-3 py-1 rounded-full text-sm"
+                                >
+                                  {hall}
+                                  {hall !== 'Bilinmeyen Salon' && (
+                                    <motion.button
+                                      onClick={(e) => {
+                                        e.stopPropagation(); // Prevent dropdown toggle
+                                        handleDeleteHall(cinema.id, hall);
+                                      }}
+                                      className="ml-2 text-red-400 hover:text-red-300"
+                                      whileHover={{ scale: 1.1 }}
+                                      transition={{ duration: 0.2 }}
+                                    >
+                                      <FaTrash size={12} />
+                                    </motion.button>
+                                  )}
+                                </motion.span>
+                              ))}
+                            </div>
+                          </td>
+                        </motion.tr>
+                      )}
+                    </AnimatePresence>
+                  </React.Fragment>
                 ))}
               </tbody>
             </motion.table>
