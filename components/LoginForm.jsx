@@ -78,6 +78,11 @@ const Login = () => {
     }
   };
 
+  const handleContinueWithoutLogin = () => {
+    setIsRedirecting(true);
+    setTimeout(() => router.push('/'), 500);
+  };
+
   return (
     <div className="fixed inset-0 h-screen w-screen bg-black flex items-center justify-center p-4 overflow-hidden">
       <AnimatePresence>
@@ -235,6 +240,25 @@ const Login = () => {
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         >
           Giriş Yap
+        </motion.button>
+
+        {/* Continue Without Login Button */}
+        <motion.button
+          type="button"
+          onClick={handleContinueWithoutLogin}
+          className="relative w-full py-3 mt-4 bg-gray-800/50 border border-purple-500/20 text-white rounded-lg font-semibold"
+          whileHover={{ 
+            scale: 1.02,
+            backgroundColor: 'rgba(46, 16, 101, 0.3)',
+            borderColor: '#a855f7'
+          }}
+          whileTap={{ 
+            scale: 0.98,
+            boxShadow: '0 0 10px rgba(192, 132, 252, 0.2)'
+          }}
+          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+        >
+          Giriş Yapmadan Devam Et
         </motion.button>
 
         {/* Register Link */}
