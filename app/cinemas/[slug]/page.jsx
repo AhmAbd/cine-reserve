@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { db } from '../../../lib/firebase';
-import { doc, getDoc, getDocs, collection } from 'firebase/firestore';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import MovieCard from '../../../components/MovieCard';
+import { motion, AnimatePresence } from "framer-motion";
+import { db } from "../../../lib/firebase";
+import { doc, getDoc, getDocs, collection } from "firebase/firestore";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import MovieCard from "../../../components/MovieCard";
 
 export default function CinemaDetailPage({ params }) {
   const [cinema, setCinema] = useState(null);
@@ -22,17 +22,17 @@ export default function CinemaDetailPage({ params }) {
         const cinemaId = params.slug;
 
         // Fetch cinema data
-        const cinemaRef = doc(db, 'cinemas', cinemaId);
+        const cinemaRef = doc(db, "cinemas", cinemaId);
         const cinemaSnap = await getDoc(cinemaRef);
-        
+
         if (!cinemaSnap.exists()) {
-          throw new Error('Sinema bulunamadı');
+          throw new Error("Sinema bulunamadı");
         }
-        
+
         setCinema(cinemaSnap.data());
 
         // Fetch showings
-        const filmsSnap = await getDocs(collection(db, 'films'));
+        const filmsSnap = await getDocs(collection(db, "films"));
         const now = new Date();
         const showingsList = [];
 
@@ -40,8 +40,8 @@ export default function CinemaDetailPage({ params }) {
           const data = docSnap.data();
           data.cinemas?.forEach((s) => {
             if (s.id === cinemaId && s.showtime) {
-              const showtimeDate = s.showtime.toDate 
-                ? s.showtime.toDate() 
+              const showtimeDate = s.showtime.toDate
+                ? s.showtime.toDate()
                 : new Date(s.showtime);
               if (showtimeDate >= now) {
                 showingsList.push({
@@ -61,13 +61,15 @@ export default function CinemaDetailPage({ params }) {
         // Group by date
         const groupedByDate = {};
         showingsList.forEach((item) => {
-          const dateKey = item.showtime.toISOString().split('T')[0];
+          const dateKey = item.showtime.toISOString().split("T")[0];
           if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
           groupedByDate[dateKey].push(item);
         });
 
         // Sort dates
-        const sortedDateKeys = Object.keys(groupedByDate).sort((a, b) => new Date(a) - new Date(b));
+        const sortedDateKeys = Object.keys(groupedByDate).sort(
+          (a, b) => new Date(a) - new Date(b)
+        );
 
         setShowings(showingsList);
         setGrouped(groupedByDate);
@@ -86,7 +88,7 @@ export default function CinemaDetailPage({ params }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0d0d1a] to-[#1a1a2e] flex items-center justify-center">
-        <motion.div 
+        <motion.div
           className="flex flex-col items-center gap-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -102,8 +104,8 @@ export default function CinemaDetailPage({ params }) {
                   transition: {
                     repeat: Infinity,
                     duration: 1.5,
-                    delay: i * 0.2
-                  }
+                    delay: i * 0.2,
+                  },
                 }}
               />
             ))}
@@ -114,8 +116,8 @@ export default function CinemaDetailPage({ params }) {
               opacity: [0.6, 1, 0.6],
               transition: {
                 repeat: Infinity,
-                duration: 2
-              }
+                duration: 2,
+              },
             }}
           >
             Sinema bilgileri yükleniyor...
@@ -156,7 +158,9 @@ export default function CinemaDetailPage({ params }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl font-bold text-white mb-4">Sinema bulunamadı</h2>
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Sinema bulunamadı
+          </h2>
           <Link
             href="/cinemas"
             className="inline-block bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-300"
@@ -190,8 +194,17 @@ export default function CinemaDetailPage({ params }) {
             href="/cinemas"
             className="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors duration-300 shadow-md"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                clipRule="evenodd"
+              />
             </svg>
             Tüm Sinemalar
           </Link>
@@ -260,10 +273,10 @@ export default function CinemaDetailPage({ params }) {
                   className="text-2xl font-semibold mb-6 pb-2 border-b-2 border-purple-600 inline-block"
                   whileHover={{ scale: 1.02 }}
                 >
-                  {new Date(date).toLocaleDateString('tr-TR', {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
+                  {new Date(date).toLocaleDateString("tr-TR", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
                   })}
                 </motion.h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -279,9 +292,9 @@ export default function CinemaDetailPage({ params }) {
                         <MovieCard movie={movie} />
                         <div className="mt-4 flex items-center justify-between">
                           <p className="text-purple-400 font-medium">
-                            {movie.showtime.toLocaleTimeString('tr-TR', {
-                              hour: '2-digit',
-                              minute: '2-digit',
+                            {movie.showtime.toLocaleTimeString("tr-TR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
                             })}
                           </p>
                           <Link
@@ -304,21 +317,36 @@ export default function CinemaDetailPage({ params }) {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-16 w-16 mx-auto text-gray-500 mb-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
-              <h3 className="text-xl font-medium text-gray-300 mb-2">Gösterim bulunamadı</h3>
-              <p className="text-gray-500">Bu sinemada şu anda gösterim planı bulunmuyor</p>
+              <h3 className="text-xl font-medium text-gray-300 mb-2">
+                Gösterim bulunamadı
+              </h3>
+              <p className="text-gray-500">
+                Bu sinemada şu anda gösterim planı bulunmuyor
+              </p>
             </motion.div>
           )}
         </motion.div>
       </div>
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
-        
+        @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap");
+
         .font-cinematic {
-          font-family: 'Montserrat', sans-serif;
+          font-family: "Montserrat", sans-serif;
         }
       `}</style>
     </div>

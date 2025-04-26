@@ -1,56 +1,60 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '../../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { motion, AnimatePresence } from 'framer-motion';
-import clsx from 'clsx';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "../../lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { motion, AnimatePresence } from "framer-motion";
+import clsx from "clsx";
 
 export default function AdminLoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [fadeOut, setFadeOut] = useState(false);
   const router = useRouter();
 
   // Debug rendering
   useEffect(() => {
-    console.log('AdminLoginForm rendered', { email, password, error, fadeOut });
+    console.log("AdminLoginForm rendered", { email, password, error, fadeOut });
   }, [email, password, error, fadeOut]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    console.log('Form submitted', { email, password });
-    setError('');
+    console.log("Form submitted", { email, password });
+    setError("");
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const user = userCredential.user;
 
-      const userDocRef = doc(db, 'users', user.uid);
+      const userDocRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userDocRef);
 
-      if (userDocSnap.exists() && userDocSnap.data().role === 'admin') {
+      if (userDocSnap.exists() && userDocSnap.data().role === "admin") {
         setFadeOut(true);
         setTimeout(() => {
-          router.push('/admin/users');
+          router.push("/admin/users");
         }, 600); // animasyon süresiyle eşleşiyor
       } else {
-        setError('Bu kullanıcı bir admin değil.');
+        setError("Bu kullanıcı bir admin değil.");
       }
     } catch (err) {
-      setError('Giriş yapılamadı: ' + err.message);
-      console.error('Firebase error:', err);
+      setError("Giriş yapılamadı: " + err.message);
+      console.error("Firebase error:", err);
     }
   };
 
   return (
     <div
       className={clsx(
-        'fixed inset-0 h-screen w-screen bg-black flex items-center justify-center p-4 overflow-hidden transition-opacity duration-500',
-        fadeOut && 'opacity-0'
+        "fixed inset-0 h-screen w-screen bg-black flex items-center justify-center p-4 overflow-hidden transition-opacity duration-500",
+        fadeOut && "opacity-0"
       )}
     >
       {/* Dark Animated Gradient Background */}
@@ -58,12 +62,12 @@ export default function AdminLoginForm() {
         className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black pointer-events-none"
         animate={{
           background: [
-            'linear-gradient(135deg, #0a0a0a 0%, #1f1f1f 50%, #0a0a0a 100%)',
-            'linear-gradient(135deg, #0a0a0a 0%, #2d1a4b 50%, #0a0a0a 100%)',
-            'linear-gradient(135deg, #0a0a0a 0%, #1f1f1f 50%, #0a0a0a 100%)',
+            "linear-gradient(135deg, #0a0a0a 0%, #1f1f1f 50%, #0a0a0a 100%)",
+            "linear-gradient(135deg, #0a0a0a 0%, #2d1a4b 50%, #0a0a0a 100%)",
+            "linear-gradient(135deg, #0a0a0a 0%, #1f1f1f 50%, #0a0a0a 100%)",
           ],
         }}
-        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
       />
 
       {/* Subtle Glowing Orbs */}
@@ -75,7 +79,7 @@ export default function AdminLoginForm() {
           x: [-30, 30, -30],
           y: [-30, 30, -30],
         }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         className="absolute bottom-1/5 right-1/5 w-80 h-80 bg-pink-900/10 rounded-full blur-3xl pointer-events-none"
@@ -85,7 +89,7 @@ export default function AdminLoginForm() {
           x: [30, -30, 30],
           y: [30, -30, 30],
         }}
-        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
       />
 
       {/* Minimal Starry Particle Effects */}
@@ -107,7 +111,7 @@ export default function AdminLoginForm() {
             duration: Math.random() * 6 + 6,
             repeat: Infinity,
             delay: Math.random() * 3,
-            ease: 'easeOut',
+            ease: "easeOut",
           }}
         />
       ))}
@@ -118,7 +122,7 @@ export default function AdminLoginForm() {
         className="relative z-20 w-full max-w-lg bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-8 sm:p-10 shadow-2xl border border-purple-500/20"
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: 'easeInOut' }}
+        transition={{ duration: 0.8, ease: "easeInOut" }}
       >
         {/* Form Header */}
         <motion.div
@@ -163,19 +167,24 @@ export default function AdminLoginForm() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
         >
-          <label className="block text-sm font-medium text-gray-300 mb-2">E-posta Adresi</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            E-posta Adresi
+          </label>
           <motion.input
             type="email"
             value={email}
             onChange={(e) => {
-              console.log('Email input changed:', e.target.value);
+              console.log("Email input changed:", e.target.value);
               setEmail(e.target.value);
             }}
             className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
             placeholder="email@example.com"
             required
             whileHover={{ scale: 1.02 }}
-            whileFocus={{ scale: 1.02, boxShadow: '0 0 10px rgba(168, 85, 247, 0.3)' }}
+            whileFocus={{
+              scale: 1.02,
+              boxShadow: "0 0 10px rgba(168, 85, 247, 0.3)",
+            }}
           />
         </motion.div>
 
@@ -186,19 +195,24 @@ export default function AdminLoginForm() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5 }}
         >
-          <label className="block text-sm font-medium text-gray-300 mb-2">Şifre</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Şifre
+          </label>
           <motion.input
             type="password"
             value={password}
             onChange={(e) => {
-              console.log('Password input changed:', e.target.value);
+              console.log("Password input changed:", e.target.value);
               setPassword(e.target.value);
             }}
             className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
             placeholder="••••••••"
             required
             whileHover={{ scale: 1.02 }}
-            whileFocus={{ scale: 1.02, boxShadow: '0 0 10px rgba(168, 85, 247, 0.3)' }}
+            whileFocus={{
+              scale: 1.02,
+              boxShadow: "0 0 10px rgba(168, 85, 247, 0.3)",
+            }}
           />
         </motion.div>
 
@@ -227,7 +241,10 @@ export default function AdminLoginForm() {
           <motion.button
             type="submit"
             className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-lg font-semibold shadow-lg flex items-center justify-center"
-            whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(168, 85, 247, 0.5)' }}
+            whileHover={{
+              scale: 1.05,
+              boxShadow: "0 0 15px rgba(168, 85, 247, 0.5)",
+            }}
             whileTap={{ scale: 0.95 }}
           >
             Giriş Yap

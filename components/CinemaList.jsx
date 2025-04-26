@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import React, { useRef, useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import CinemaCard from './CinemaCard';
+import React, { useRef, useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import CinemaCard from "./CinemaCard";
 
 const CinemaList = () => {
   const containerRef = useRef(null);
@@ -17,7 +17,7 @@ const CinemaList = () => {
 
   useEffect(() => {
     const fetchCinemas = async () => {
-      const snapshot = await getDocs(collection(db, 'cinemas'));
+      const snapshot = await getDocs(collection(db, "cinemas"));
       const list = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -41,17 +41,18 @@ const CinemaList = () => {
     const container = containerRef.current;
     if (!container) return;
 
-    container.addEventListener('scroll', checkScrollPosition);
+    container.addEventListener("scroll", checkScrollPosition);
     checkScrollPosition();
 
-    return () => container.removeEventListener('scroll', checkScrollPosition);
+    return () => container.removeEventListener("scroll", checkScrollPosition);
   }, [cinemas]); // Added cinemas as dependency
 
   const scroll = (direction) => {
     const container = containerRef.current;
     if (!container) return;
 
-    const scrollAmount = direction === 'left' ? -container.offsetWidth : container.offsetWidth;
+    const scrollAmount =
+      direction === "left" ? -container.offsetWidth : container.offsetWidth;
     const targetScroll = container.scrollLeft + scrollAmount;
 
     // Ensure we don't scroll past boundaries
@@ -66,8 +67,7 @@ const CinemaList = () => {
     const change = target - start;
     const startTime = performance.now();
 
-    const easeInOutQuad = (t) =>
-      t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    const easeInOutQuad = (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 
     const animateScroll = (currentTime) => {
       const elapsed = currentTime - startTime;
@@ -87,7 +87,7 @@ const CinemaList = () => {
 
   if (!cinemas.length) {
     return (
-      <motion.div 
+      <motion.div
         className="text-white py-10 text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -107,14 +107,14 @@ const CinemaList = () => {
       transition={{ duration: 0.8 }}
     >
       <div className="max-w-7xl mx-auto px-4">
-        <motion.h2 
+        <motion.h2
           className="text-3xl font-bold text-white mb-8 font-cinematic"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
         >
           Ayrıcalıklı Salonlar
-          <motion.div 
+          <motion.div
             className="h-1 bg-gradient-to-r from-purple-600 to-indigo-600 mt-2"
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
@@ -125,10 +125,12 @@ const CinemaList = () => {
         <AnimatePresence>
           {showButtons && (
             <motion.button
-              onClick={() => scroll('left')}
+              onClick={() => scroll("left")}
               disabled={atStart}
               className={`absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 text-purple-400 p-4 rounded-full shadow-lg z-10 transition-all duration-300 ${
-                atStart ? 'opacity-30 cursor-not-allowed' : 'opacity-100 hover:scale-110'
+                atStart
+                  ? "opacity-30 cursor-not-allowed"
+                  : "opacity-100 hover:scale-110"
               }`}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: atStart ? 0.3 : 1, x: 0 }}
@@ -156,10 +158,12 @@ const CinemaList = () => {
         <AnimatePresence>
           {showButtons && (
             <motion.button
-              onClick={() => scroll('right')}
+              onClick={() => scroll("right")}
               disabled={atEnd}
               className={`absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 text-purple-400 p-4 rounded-full shadow-lg z-10 transition-all duration-300 ${
-                atEnd ? 'opacity-30 cursor-not-allowed' : 'opacity-100 hover:scale-110'
+                atEnd
+                  ? "opacity-30 cursor-not-allowed"
+                  : "opacity-100 hover:scale-110"
               }`}
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: atEnd ? 0.3 : 1, x: 0 }}
@@ -187,8 +191,8 @@ const CinemaList = () => {
         <div
           ref={containerRef}
           style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
           }}
           className="flex overflow-x-auto gap-8 no-scrollbar pb-4 scroll-smooth"
         >

@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
-import CinemaCard from '../../components/CinemaCard';
-import Link from 'next/link';
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../../lib/firebase";
+import CinemaCard from "../../components/CinemaCard";
+import Link from "next/link";
 
 export default function CinemaListPage() {
   const [cinemas, setCinemas] = useState([]);
   const [filtered, setFiltered] = useState([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCinemas = async () => {
       try {
-        const snapshot = await getDocs(collection(db, 'cinemas'));
+        const snapshot = await getDocs(collection(db, "cinemas"));
         const cinemaList = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         }));
         setCinemas(cinemaList);
         setFiltered(cinemaList);
@@ -43,7 +43,7 @@ export default function CinemaListPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0d0d1a] to-[#1a1a2e] flex items-center justify-center">
-        <motion.div 
+        <motion.div
           className="flex flex-col items-center gap-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -59,8 +59,8 @@ export default function CinemaListPage() {
                   transition: {
                     repeat: Infinity,
                     duration: 1.5,
-                    delay: i * 0.2
-                  }
+                    delay: i * 0.2,
+                  },
                 }}
               />
             ))}
@@ -71,8 +71,8 @@ export default function CinemaListPage() {
               opacity: [0.6, 1, 0.6],
               transition: {
                 repeat: Infinity,
-                duration: 2
-              }
+                duration: 2,
+              },
             }}
           >
             Sinemalar yükleniyor...
@@ -100,7 +100,7 @@ export default function CinemaListPage() {
       >
         {/* Page Header */}
         <div className="text-center mb-12">
-          <motion.h1 
+          <motion.h1
             className="text-4xl sm:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-purple-600 font-cinematic"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -145,11 +145,14 @@ export default function CinemaListPage() {
                 layout
               >
                 <Link href={`/cinemas/${cinema.id}`}>
-                  <motion.div 
+                  <motion.div
                     className="bg-gray-800/50 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg border border-gray-700/50 hover:border-purple-500/30 transition-all h-full flex flex-col"
-                    whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(124, 58, 237, 0.3)" }}
+                    whileHover={{
+                      y: -5,
+                      boxShadow: "0 10px 25px -5px rgba(124, 58, 237, 0.3)",
+                    }}
                   >
-                    <div className="relative">
+                    {/* <div className="relative">
                       <motion.img
                         src={cinema.imgSrc}
                         alt={cinema.name}
@@ -159,10 +162,14 @@ export default function CinemaListPage() {
                         transition={{ duration: 0.5 }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                    </div>
+                    </div> */}
                     <div className="p-5 flex-grow">
-                      <h2 className="text-xl font-semibold mb-1">{cinema.name}</h2>
-                      <p className="text-sm text-gray-400 mb-3">{cinema.location}</p>
+                      <h2 className="text-xl font-semibold mb-1">
+                        {cinema.name}
+                      </h2>
+                      <p className="text-sm text-gray-400 mb-3">
+                        {cinema.location}
+                      </p>
                       <motion.div
                         className="w-full h-1 bg-gradient-to-r from-purple-600 to-transparent rounded-full"
                         initial={{ scaleX: 0 }}
@@ -195,16 +202,31 @@ export default function CinemaListPage() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-16 w-16 mx-auto text-gray-500 mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
-            <h3 className="text-xl font-medium text-gray-300 mb-2">Sinema bulunamadı</h3>
+            <h3 className="text-xl font-medium text-gray-300 mb-2">
+              Sinema bulunamadı
+            </h3>
             <p className="text-gray-500 max-w-md mx-auto">
-              {search ? `"${search}" için sonuç bulunamadı` : 'Şu anda sinema bulunmuyor'}
+              {search
+                ? `"${search}" için sonuç bulunamadı`
+                : "Şu anda sinema bulunmuyor"}
             </p>
             {search && (
               <button
-                onClick={() => setSearch('')}
+                onClick={() => setSearch("")}
                 className="mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-300"
               >
                 Filtreyi Temizle
@@ -215,10 +237,10 @@ export default function CinemaListPage() {
       </motion.div>
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
-        
+        @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap");
+
         .font-cinematic {
-          font-family: 'Montserrat', sans-serif;
+          font-family: "Montserrat", sans-serif;
         }
       `}</style>
     </div>
