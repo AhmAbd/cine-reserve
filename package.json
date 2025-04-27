@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.6",
+    "@react-three/drei": "^10.0.7",
+    "@react-three/fiber": "^9.1.2",
     "@stripe/react-stripe-js": "^3.6.0",
     "@stripe/stripe-js": "^7.1.0",
     "clsx": "^2.1.1",
@@ -22,9 +24,12 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",
+    "react-parallax-tilt": "^1.7.293",
     "react-select": "^5.10.1",
     "react-toastify": "^11.0.5",
     "swiper": "^11.2.6",
+    "three": "^0.176.0",
+    "tsparticles": "^3.8.1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
