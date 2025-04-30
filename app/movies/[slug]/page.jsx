@@ -30,7 +30,7 @@ export default function MovieDetailPage() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState(null);
 
-  // Fetch movie & cinemas
+  // Fetch movie & cinemas and clean up past showtimes
   useEffect(() => {
     const fetchMovie = async () => {
       try {
@@ -59,7 +59,51 @@ export default function MovieDetailPage() {
         setMovie(foundMovie);
         setLoadingProgress(60);
 
-        // 2. Fetch cinema and hall data
+        // 2. Clean up past showtimes
+        if (foundMovie.cinemas && foundMovie.cinemas.length > 0) {
+          const currentTime = new Date();
+          const validCinemas = [];
+          const pastCinemas = [];
+
+          foundMovie.cinemas.forEach((cinema) => {
+            try {
+              const showtime = cinema.showtime?.toDate
+                ? cinema.showtime.toDate()
+                : new Date(cinema.showtime);
+
+              if (isNaN(showtime.getTime())) {
+                console.warn('Invalid showtime format:', cinema.showtime);
+                return;
+              }
+
+              if (showtime < currentTime) {
+                pastCinemas.push(cinema);
+              } else {
+                validCinemas.push(cinema);
+              }
+            } catch (err) {
+              console.error('Error processing showtime:', err);
+            }
+          });
+
+          // Update Firebase if there are past showtimes
+          if (pastCinemas.length > 0) {
+            try {
+              const filmRef = doc(db, 'films', foundMovie.id);
+              await updateDoc(filmRef, {
+                cinemas: validCinemas,
+              });
+              console.log('Past showtimes removed:', pastCinemas.length);
+              foundMovie.cinemas = validCinemas; // Update local movie data
+              setMovie({ ...foundMovie });
+            } catch (err) {
+              console.error('Error updating Firebase:', err);
+              setError('Geçmiş seanslar temizlenirken bir hata oluştu.');
+            }
+          }
+        }
+
+        // 3. Fetch cinema and hall data
         if (!foundMovie.cinemas || foundMovie.cinemas.length === 0) {
           console.log('No cinema data found for this movie');
           setCinemaData([]);
@@ -73,7 +117,7 @@ export default function MovieDetailPage() {
             try {
               const [cinemaSnap, hallSnap] = await Promise.all([
                 getDoc(doc(db, 'cinemas', cinema.id)),
-                cinema.hallId ? getDoc(doc(db, 'halls', cinema.hallId)) : Promise.resolve(null)
+                cinema.hallId ? getDoc(doc(db, 'halls', cinema.hallId)) : Promise.resolve(null),
               ]);
 
               return {
@@ -81,7 +125,7 @@ export default function MovieDetailPage() {
                 id: cinema.id,
                 name: cinemaSnap.exists() ? cinemaSnap.data().name : cinema.id,
                 hallName: hallSnap?.exists() ? hallSnap.data().name : cinema.hallId || 'Salon 1',
-                showtime: cinema.showtime
+                showtime: cinema.showtime,
               };
             } catch (err) {
               console.error(`Error fetching cinema (${cinema.id}):`, err);
@@ -91,8 +135,8 @@ export default function MovieDetailPage() {
         );
 
         // Filter out null values
-        const validCinemas = cinemas.filter(cinema => cinema !== null);
-        
+        const validCinemas = cinemas.filter((cinema) => cinema !== null);
+
         if (validCinemas.length === 0) {
           console.log('No valid cinema data found');
         }
@@ -101,7 +145,7 @@ export default function MovieDetailPage() {
         setLoadingProgress(100);
         setTimeout(() => setLoading(false), 500);
       } catch (error) {
-        console.error("Data fetch error:", error);
+        console.error('Data fetch error:', error);
         setError(error.message);
         setLoading(false);
       }
@@ -114,23 +158,37 @@ export default function MovieDetailPage() {
   useEffect(() => {
     const checkFavorites = async () => {
       if (!user) return;
-      const userRef = doc(db, 'users', user.uid);
-      const userSnap = await getDoc(userRef);
-      const favorites = userSnap.data()?.favorites || [];
-      setIsFavorite(favorites.includes(slug));
+      try {
+        const userRef = doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const favorites = userSnap.data()?.favorites || [];
+          setIsFavorite(favorites.includes(slug));
+        } else {
+          console.warn('User document does not exist');
+          setIsFavorite(false);
+        }
+      } catch (err) {
+        console.error('Error checking favorites:', err);
+      }
     };
 
     if (user && movie) checkFavorites();
-  }, [user, movie]);
+  }, [user, movie, slug]);
 
   // Handle add/remove favorite
   const toggleFavorite = async () => {
     if (!user) return;
-    const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, {
-      favorites: isFavorite ? arrayRemove(slug) : arrayUnion(slug),
-    });
-    setIsFavorite(!isFavorite);
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        favorites: isFavorite ? arrayRemove(slug) : arrayUnion(slug),
+      });
+      setIsFavorite(!isFavorite);
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+      setError('Favorilere ekleme/kaldırma işlemi başarısız.');
+    }
   };
 
   // Group showtimes by date with proper error handling
@@ -142,10 +200,10 @@ export default function MovieDetailPage() {
     }
 
     try {
-      const showtimeDate = cinema.showtime.toDate 
-        ? cinema.showtime.toDate() 
+      const showtimeDate = cinema.showtime.toDate
+        ? cinema.showtime.toDate()
         : new Date(cinema.showtime);
-      
+
       if (isNaN(showtimeDate.getTime())) {
         console.warn('Invalid date format:', cinema.showtime);
         return;
@@ -175,21 +233,19 @@ export default function MovieDetailPage() {
     if (sortedDates.length > 0 && !activeDate) {
       setActiveDate(sortedDates[0]);
     }
-  }, [sortedDates]);
+  }, [sortedDates, activeDate]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0d0d1a] to-[#1a1a2e] flex items-center justify-center">
-        <motion.div 
+        <motion.div
           className="flex flex-col items-center gap-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <motion.div 
-            className="relative w-64 h-2 bg-gray-700 rounded-full overflow-hidden"
-          >
+          <motion.div className="relative w-64 h-2 bg-gray-700 rounded-full overflow-hidden">
             <motion.div
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"
               initial={{ width: 0 }}
@@ -197,24 +253,24 @@ export default function MovieDetailPage() {
               transition={{ duration: 0.5, ease: 'easeOut' }}
             />
           </motion.div>
-          
+
           <div className="flex flex-col items-center gap-2">
             <motion.div
               className="flex gap-2"
-              animate={{ 
+              animate={{
                 rotate: [0, 10, -10, 0],
-                transition: { 
-                  repeat: Infinity, 
+                transition: {
+                  repeat: Infinity,
                   duration: 1.5,
-                  ease: "easeInOut"
-                } 
+                  ease: 'easeInOut',
+                },
               }}
             >
               <div className="w-8 h-8 rounded-full bg-purple-500" />
               <div className="w-8 h-8 rounded-full bg-indigo-500" style={{ animationDelay: '0.2s' }} />
               <div className="w-8 h-8 rounded-full bg-pink-500" style={{ animationDelay: '0.4s' }} />
             </motion.div>
-            
+
             <motion.p
               className="text-white text-xl font-medium"
               animate={{
@@ -222,8 +278,8 @@ export default function MovieDetailPage() {
                 transition: {
                   repeat: Infinity,
                   duration: 2,
-                  ease: "easeInOut"
-                }
+                  ease: 'easeInOut',
+                },
               }}
             >
               Film bilgileri yükleniyor...
@@ -279,7 +335,6 @@ export default function MovieDetailPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0d0d1a] to-[#1a1a2e] text-white overflow-hidden relative">
-      {/* Background elements matching homepage */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-[-1]">
         <div className="absolute top-0 left-0 w-full h-full opacity-5">
           <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-purple-600 filter blur-3xl" />
@@ -288,7 +343,6 @@ export default function MovieDetailPage() {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        {/* Back button */}
         <motion.div
           className="mb-8"
           initial={{ opacity: 0 }}
@@ -299,8 +353,17 @@ export default function MovieDetailPage() {
             href="/movies"
             className="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors duration-300 shadow-md"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                clipRule="evenodd"
+              />
             </svg>
             Tüm Filmler
           </Link>
@@ -312,7 +375,6 @@ export default function MovieDetailPage() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
         >
-          {/* Movie Poster Section */}
           <motion.div
             className="w-full lg:w-1/3"
             initial={{ y: 50, opacity: 0 }}
@@ -335,13 +397,13 @@ export default function MovieDetailPage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </motion.div>
-              
+
               {movie.rating && (
                 <motion.div
                   className="absolute top-4 right-4 bg-yellow-500 text-gray-900 px-3 py-1 rounded-full text-sm font-bold flex items-center"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ delay: 0.4, type: "spring" }}
+                  transition={{ delay: 0.4, type: 'spring' }}
                 >
                   {movie.rating}
                 </motion.div>
@@ -361,8 +423,17 @@ export default function MovieDetailPage() {
                   rel="noopener noreferrer"
                   className="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-center py-3 px-6 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-purple-500/20 flex items-center justify-center gap-2"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                   Fragmanı İzle
                 </a>
@@ -370,7 +441,6 @@ export default function MovieDetailPage() {
             )}
           </motion.div>
 
-          {/* Movie Details Section */}
           <motion.div
             className="w-full lg:w-2/3 flex flex-col gap-8"
             initial={{ opacity: 0, y: 50 }}
@@ -399,10 +469,12 @@ export default function MovieDetailPage() {
               {[
                 { label: 'Tür', value: movie.genre, icon: '🎭' },
                 { label: 'Süre', value: movie.duration, icon: '⏱️' },
-                { 
-                  label: 'Vizyon Tarihi', 
-                  value: new Date(movie.releaseDate.toDate()).toLocaleDateString('tr-TR'),
-                  icon: '📅'
+                {
+                  label: 'Vizyon Tarihi',
+                  value: movie.releaseDate?.toDate
+                    ? new Date(movie.releaseDate.toDate()).toLocaleDateString('tr-TR')
+                    : 'Bilinmiyor',
+                  icon: '📅',
                 },
                 { label: 'Yönetmen', value: director, icon: '🎬' },
                 { label: 'Oyuncular', value: movie.cast?.join(', ') || 'Bilinmiyor', icon: '🌟' },
@@ -434,9 +506,7 @@ export default function MovieDetailPage() {
               transition={{ duration: 0.5, delay: 0.6 }}
             >
               <h3 className="text-xl font-semibold text-gray-300 mb-2">Konu</h3>
-              <p className="text-gray-300 leading-relaxed">
-                {movie.description}
-              </p>
+              <p className="text-gray-300 leading-relaxed">{movie.description}</p>
             </motion.div>
 
             <motion.div
@@ -455,15 +525,35 @@ export default function MovieDetailPage() {
               >
                 {isFavorite ? (
                   <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     Favorilerden Kaldır
                   </>
                 ) : (
                   <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      />
                     </svg>
                     Favorilere Ekle
                   </>
@@ -480,7 +570,7 @@ export default function MovieDetailPage() {
               <h2 className="text-3xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-purple-600">
                 Seanslar
               </h2>
-              
+
               <motion.div
                 className="w-24 h-1.5 bg-gradient-to-r from-purple-500 to-transparent rounded-full mb-6"
                 initial={{ scaleX: 0 }}
@@ -518,14 +608,14 @@ export default function MovieDetailPage() {
                       className="grid gap-4"
                     >
                       {sessionsByDate[activeDate]?.map((cinema) => {
-                        const showtime = cinema.showtime.toDate 
-                          ? cinema.showtime.toDate() 
+                        const showtime = cinema.showtime.toDate
+                          ? cinema.showtime.toDate()
                           : new Date(cinema.showtime);
                         const timeString = showtime.toLocaleTimeString('tr-TR', {
                           hour: '2-digit',
-                          minute: '2-digit'
+                          minute: '2-digit',
                         });
-                        
+
                         return (
                           <motion.div
                             key={cinema.id + cinema.showtime}
@@ -536,19 +626,24 @@ export default function MovieDetailPage() {
                               <div>
                                 <h3 className="text-xl font-semibold">{cinema.name}</h3>
                                 <p className="text-gray-400 mt-1">
-                                  <span className="text-purple-400">{timeString}</span> • {cinema.hallNumber}
+                                  <span className="text-purple-400">{timeString}</span> •{' '}
+                                  {cinema.hallName}
                                 </p>
                               </div>
                               <Link
                                 href={`/tickets/select-type?movie=${slug}&cinema=${cinema.id}`}
                                 className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-purple-500/20 flex items-center justify-center gap-2"
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-5 w-5"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
                                   <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 100 4v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2a2 2 0 100-4V6z" />
                                 </svg>
                                 Bilet Al
                               </Link>
-
                             </div>
                           </motion.div>
                         );
@@ -563,11 +658,26 @@ export default function MovieDetailPage() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5 }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-12 w-12 mx-auto text-gray-500 mb-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
-                  <h3 className="text-xl font-medium text-gray-300 mb-2">Uygun seans bulunamadı</h3>
-                  <p className="text-gray-500">Bu film için şu anda gösterim planı bulunmuyor</p>
+                  <h3 className="text-xl font-medium text-gray-300 mb-2">
+                    Uygun seans bulunamadı
+                  </h3>
+                  <p className="text-gray-500">
+                    Bu film için şu anda gösterim planı bulunmuyor
+                  </p>
                 </motion.div>
               )}
             </motion.div>
