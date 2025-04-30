@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { db } from '../../../lib/firebase';
-import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import useRequireAuth from '../../../hooks/useRequireAuth';
 import { Minus, Plus } from 'lucide-react';
 
@@ -13,7 +13,7 @@ export default function SelectTicketType() {
   const movieId = searchParams.get('movie');
   const cinemaId = searchParams.get('cinema');
 
-  const { user, loading: authLoading } = useRequireAuth();
+  const { user } = useRequireAuth();
   const [counts, setCounts] = useState({ full: 1, student: 0 });
   const [prices, setPrices] = useState({ full: 0, student: 0 });
 
@@ -24,8 +24,6 @@ export default function SelectTicketType() {
         const priceDoc = await getDoc(priceDocRef);
         if (priceDoc.exists()) {
           setPrices(priceDoc.data());
-        } else {
-          console.log("No price data found!");
         }
       } catch (error) {
         console.error("Error fetching prices:", error);
@@ -40,27 +38,10 @@ export default function SelectTicketType() {
     setCounts(prev => ({ ...prev, [type]: Math.max(0, prev[type] + delta) }));
   };
 
-  const handleContinue = async () => {
-    if (!user) return;
-
-    const ticketData = {
-      userId: user.uid,
-      movieId,
-      cinemaId,
-      fullCount: counts.full,
-      studentCount: counts.student,
-      totalPrice: total,
-      timestamp: serverTimestamp(),
-    };
-
-    try {
-      const ticketRef = await addDoc(collection(db, 'tickets'), ticketData);
-      router.push(
-        `/tickets/select-seat?movie=${movieId}&cinema=${cinemaId}&booking=${ticketRef.id}&full=${counts.full}&student=${counts.student}`
-      );
-    } catch (error) {
-      console.error('Error creating ticket:', error);
-    }
+  const handleContinue = () => {
+    router.push(
+      `/tickets/select-seat?movie=${movieId}&cinema=${cinemaId}&full=${counts.full}&student=${counts.student}`
+    );
   };
 
   return (
