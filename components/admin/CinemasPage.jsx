@@ -7,7 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaEdit, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa'; // FaPlus kaldırıldı
+import { FaEdit, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 
 export default function CinemasPage() {
   const [cinemas, setCinemas] = useState([]);
@@ -132,17 +132,67 @@ export default function CinemasPage() {
   }
 
   return (
-    <div className="fixed inset-0 h-screen w-screen bg-black flex items-center justify-center p-4 overflow-y-auto">
-      <div className="fixed inset-0 bg-gradient-to-b from-black via-purple-950 to-black z-0" />
-      <div className="fixed inset-0 bg-[url('/grid-pattern.svg')] bg-repeat opacity-10 z-0" />
-      
+    <div className="fixed inset-0 h-screen w-screen bg-black flex items-center justify-center p-4 overflow-hidden">
+      {/* Background Gradient */}
       <motion.div
-        className="relative z-10 bg-gray-900/80 backdrop-blur-lg p-6 rounded-2xl shadow-2xl w-full max-w-5xl mx-auto text-white border border-purple-500/20 flex flex-col"
+        className="fixed inset-0 bg-gradient-to-b from-black via-purple-950 to-black z-0"
+        initial={{
+          background: 'linear-gradient(180deg, #000000 0%, #000000 50%, #000000 100%)',
+        }}
+        animate={{
+          background: 'linear-gradient(180deg, #000000 0%, #2d1a4b 50%, #000000 100%)',
+        }}
+        transition={{ duration: 3, ease: 'easeInOut' }}
+      />
+
+      {/* Moving Particles */}
+      {[...Array(30)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-3 h-3 rounded-full pointer-events-none blur-sm"
+          style={{ backgroundColor: 'rgba(147, 51, 234, 0.5)' }}
+          initial={{
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            scale: Math.random() * 0.5 + 0.5,
+            opacity: 0.5,
+          }}
+          animate={{
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            scale: Math.random() * 0.5 + 0.5,
+          }}
+          transition={{
+            duration: Math.random() * 10 + 5,
+            repeat: Infinity,
+            repeatType: 'loop',
+            ease: 'easeInOut',
+            delay: Math.random() * 2,
+          }}
+        />
+      ))}
+
+      {/* Nebula Glow */}
+      <motion.div
+        className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-3xl pointer-events-none"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 0.4 }}
+        transition={{ duration: 2, ease: 'easeOut' }}
+      />
+      <motion.div
+        className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-full blur-3xl pointer-events-none"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 0.5 }}
+        transition={{ duration: 2.5, ease: 'easeOut' }}
+      />
+
+      <motion.div
+        className="relative z-10 bg-gray-900/80 backdrop-blur-lg p-6 rounded-2xl shadow-2xl w-full max-w-5xl mx-auto text-white border border-purple-500/20 flex flex-col overflow-hidden"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        {/* Header - Yeni sinema ekle butonu kaldırıldı */}
+        {/* Header */}
         <div className="flex justify-center items-center mb-6"> 
           <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
             🎬 Sinema Salonu Yönetimi
@@ -164,7 +214,7 @@ export default function CinemasPage() {
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
         </div>
 
-        <div className="overflow-y-auto max-h-[60vh] scrollbar-thin scrollbar-thumb-purple-700 scrollbar-track-gray-800">
+        <div className="overflow-hidden">
           {filteredCinemas.length > 0 ? (
             <motion.table className="w-full bg-gray-800/30 rounded-lg overflow-hidden">
               <thead className="bg-gray-700 text-left text-gray-300 sticky top-0">

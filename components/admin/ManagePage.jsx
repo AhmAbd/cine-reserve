@@ -29,7 +29,7 @@ export default function ManagePage() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 h-screen w-screen bg-black flex items-center justify-center">
+      <div className="fixed inset-0 h-screen w-screen bg-black flex items-center justify-center overflow-hidden">
         <motion.div
           className="relative w-20 h-20"
           animate={{ rotate: 360 }}
@@ -71,7 +71,7 @@ export default function ManagePage() {
   }
 
   return (
-    <div className="min-h-screen w-screen bg-black flex flex-col">
+    <div className="min-h-screen w-screen bg-black flex flex-col overflow-x-hidden">
       {/* Background Gradient */}
       <motion.div
         className="absolute inset-0 bg-gradient-to-b from-black via-purple-950 to-black pointer-events-none z-0"
@@ -88,16 +88,17 @@ export default function ManagePage() {
       {[...Array(20)].map((_, i) => (
         <motion.div
           key={i}
-          className="absolute w-1 h-1 bg-white rounded-full pointer-events-none"
+          className="absolute w-1 h-1 rounded-full pointer-events-none"
+          style={{ backgroundColor: 'rgba(147, 51, 234, 0.5)' }}
           initial={{
             x: Math.random() * window.innerWidth,
             y: Math.random() * window.innerHeight,
             scale: 0,
-            opacity: 0,
+            opacity: 0.5,
           }}
           animate={{
             scale: Math.random() * 0.5 + 0.5,
-            opacity: Math.random() * 0.6 + 0.2,
+            opacity: 0.5,
           }}
           transition={{
             duration: Math.random() * 2 + 1,
@@ -121,10 +122,10 @@ export default function ManagePage() {
         transition={{ duration: 2.5, ease: 'easeOut' }}
       />
 
-      {/* Main Content with Scroll */}
-      <div className="flex-1 overflow-y-auto p-4">
+      {/* Main Content */}
+      <div className="p-4 overflow-x-hidden">
         <motion.div
-          className="relative z-10 bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-6xl mx-auto text-white border border-purple-500/20 flex flex-col"
+          className="relative z-10 bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-5xl mx-auto text-white border border-purple-500/20 flex flex-col box-border"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}

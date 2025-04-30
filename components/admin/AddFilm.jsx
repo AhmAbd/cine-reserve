@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   collection,
   addDoc,
@@ -185,7 +185,7 @@ export default function AddFilm() {
         title,
         slug,
         genre,
-        duration: `${duration} `,
+        duration: `${duration} dk`,
         releaseDate: new Date(releaseDate),
         description: summary,
         trailerUrl,
@@ -414,16 +414,105 @@ export default function AddFilm() {
         >
           {loading ? '⏳ Ekleniyor...' : 'Filmi Ekle'}
         </button>
-
-        {/* Mesaj */}
-        {message && (
-          <p className={`mt-4 text-center text-sm ${
-            message.startsWith('✅') ? 'text-green-400' : 'text-red-400'
-          }`}>
-            {message}
-          </p>
-        )}
       </form>
+
+      {/* Notification Modal */}
+      <AnimatePresence>
+        {message && (
+          <motion.div
+            className="fixed inset-0 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            <motion.div
+              className={`relative z-50 p-6 rounded-2xl shadow-2xl max-w-sm w-full mx-4 ${
+                message.startsWith('✅')
+                  ? 'bg-gradient-to-br from-green-600/80 to-green-700/80'
+                  : 'bg-gradient-to-br from-red-600/80 to-red-700/80'
+              } backdrop-blur-sm border border-white/10`}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+            >
+              <div className="text-center">
+                <motion.div
+                  className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {message.startsWith('✅') ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-green-300"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-red-300"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  )}
+                </motion.div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  {message.startsWith('✅') ? 'Başarılı!' : 'Hata!'}
+                </h3>
+                <p className="text-gray-200 mb-4">
+                  {message.replace(/^(\✅|\❌)\s*/, '')}
+                </p>
+                {message.startsWith('✅') && (
+                  <div className="w-full bg-green-100/20 h-1.5 rounded-full overflow-hidden">
+                    <motion.div
+                      className="bg-green-300 h-full rounded-full"
+                      initial={{ width: '100%' }}
+                      animate={{ width: '0%' }}
+                      transition={{ duration: 3 }}
+                    />
+                  </div>
+                )}
+                {message.startsWith('❌') && (
+                  <motion.button
+                    className="mt-4 px-4 py-2 bg-gray-800/50 text-white rounded-lg text-sm border border-purple-500/30"
+                    onClick={() => setMessage('')}
+                    whileHover={{ backgroundColor: 'rgba(75, 85, 99, 0.7)', scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 400 }}
+                  >
+                    Kapat
+                  </motion.button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
