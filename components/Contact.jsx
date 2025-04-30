@@ -23,23 +23,33 @@ const Contact = () => {
   const [success, setSuccess] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
 
-  // State for particle positions
+  // State for particle positions and window dimensions
   const [particlePositions, setParticlePositions] = useState([]);
+  const [windowHeight, setWindowHeight] = useState(0);
 
   // Debug rendering
   useEffect(() => {
     console.log('Contact form rendered', { formData, loading, error, success });
   }, [formData, loading, error, success]);
 
-  // Set particle positions on mount
+  // Set particle positions and window height on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Set window height
+      setWindowHeight(window.innerHeight);
+
+      // Generate particle positions
       const positions = [...Array(15)].map(() => ({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
         scale: Math.random() * 0.3 + 0.3,
       }));
       setParticlePositions(positions);
+
+      // Update height on window resize
+      const handleResize = () => setWindowHeight(window.innerHeight);
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
     }
   }, []);
 
@@ -150,7 +160,7 @@ const Contact = () => {
             scale: pos.scale,
           }}
           animate={{
-            y: [null, -window.innerHeight || 0],
+            y: [null, -windowHeight],
             opacity: [0.6, 0],
             scale: [0.8, 0.3],
           }}
