@@ -23,10 +23,25 @@ const Contact = () => {
   const [success, setSuccess] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
 
+  // State for particle positions
+  const [particlePositions, setParticlePositions] = useState([]);
+
   // Debug rendering
   useEffect(() => {
     console.log('Contact form rendered', { formData, loading, error, success });
   }, [formData, loading, error, success]);
+
+  // Set particle positions on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const positions = [...Array(15)].map(() => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        scale: Math.random() * 0.3 + 0.3,
+      }));
+      setParticlePositions(positions);
+    }
+  }, []);
 
   // Handle form input changes
   const handleChange = (e) => {
@@ -125,17 +140,17 @@ const Contact = () => {
       />
 
       {/* Minimal Starry Particle Effects */}
-      {[...Array(15)].map((_, i) => (
+      {particlePositions.map((pos, i) => (
         <motion.div
           key={i}
           className="absolute w-1 h-1 bg-purple-200/50 rounded-full pointer-events-none"
           initial={{
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
-            scale: Math.random() * 0.3 + 0.3,
+            x: pos.x,
+            y: pos.y,
+            scale: pos.scale,
           }}
           animate={{
-            y: [null, -window.innerHeight],
+            y: [null, -window.innerHeight || 0],
             opacity: [0.6, 0],
             scale: [0.8, 0.3],
           }}
