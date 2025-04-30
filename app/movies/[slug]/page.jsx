@@ -540,7 +540,7 @@ export default function MovieDetailPage() {
                                 </p>
                               </div>
                               <Link
-                                href={`/tickets/select-seat?movie=${slug}&cinema=${cinema.id}`}
+                                href={`/tickets/select-type?movie=${slug}&cinema=${cinema.id}`}
                                 className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-purple-500/20 flex items-center justify-center gap-2"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -548,6 +548,7 @@ export default function MovieDetailPage() {
                                 </svg>
                                 Bilet Al
                               </Link>
+
                             </div>
                           </motion.div>
                         );

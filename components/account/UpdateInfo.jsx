@@ -5,10 +5,11 @@ import { db, auth } from '../../lib/firebase';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import useRequireAuth from '../../hooks/useRequireAuth';
+import { motion, AnimatePresence } from 'framer-motion';
+import Tilt from 'react-parallax-tilt';
 
 const UpdateInfoPage = () => {
   const { user: currentUser, loading: authLoading } = useRequireAuth();
-
   const [userInfo, setUserInfo] = useState({
     firstName: '',
     lastName: '',
@@ -17,7 +18,6 @@ const UpdateInfoPage = () => {
     birthDate: '',
     gender: '',
   });
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -106,106 +106,199 @@ const UpdateInfoPage = () => {
   };
 
   return (
-    <div className="w-full">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-2xl mx-auto bg-white shadow-xl p-10 rounded-xl space-y-6"
-      >
-        <h2 className="text-3xl font-bold text-center mb-6 text-purple-800">Kişisel Bilgiler</h2>
-        {error && <p className="text-red-500 text-center">{error}</p>}
+    <div className="min-h-screen bg-[#0d0d1a] text-white px-4 sm:px-6 py-12 overflow-hidden relative">
+      {/* Parallax Background */}
+      <div className="fixed inset-0 z-[-2]">
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-br from-[#0d0d1a] to-[#1a1a2e] opacity-80"
+          animate={{ y: [0, -20, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-tr from-purple-900/30 to-indigo-900/30 opacity-50"
+          animate={{ y: [0, 20, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
 
-        <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">İsim</label>
-          <input
-            type="text"
-            id="firstName"
-            name="firstName"
-            value={userInfo.firstName}
-            onChange={handleChange}
-            className="w-full mt-1 p-3 border rounded-lg bg-gray-50 text-black"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">Soyisim</label>
-          <input
-            type="text"
-            id="lastName"
-            name="lastName"
-            value={userInfo.lastName}
-            onChange={handleChange}
-            className="w-full mt-1 p-3 border rounded-lg bg-gray-50 text-black"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Telefon</label>
-          <input
-            type="text"
-            id="phone"
-            name="phone"
-            value={userInfo.phone}
-            onChange={handleChange}
-            className="w-full mt-1 p-3 border rounded-lg bg-gray-50 text-black"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">E-posta</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={userInfo.email}
-            onChange={handleChange}
-            className="w-full mt-1 p-3 border rounded-lg bg-gray-50 text-black"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700">Doğum Tarihi</label>
-          <input
-            type="date"
-            id="birthDate"
-            name="birthDate"
-            value={userInfo.birthDate}
-            onChange={handleChange}
-            className="w-full mt-1 p-3 border rounded-lg bg-gray-50 text-black"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Cinsiyet</label>
-          <select
-            id="gender"
-            name="gender"
-            value={userInfo.gender}
-            onChange={handleChange}
-            className="w-full mt-1 p-3 border rounded-lg bg-gray-50 text-black"
-            required
+      <div className="relative z-10 max-w-2xl mx-auto">
+        {/* Header with Tilt */}
+        <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} glareEnable={true} glareMaxOpacity={0.3} glareColor="#9333ea">
+          <motion.div
+            className="text-center mb-12 bg-gradient-to-r from-gray-900/70 to-gray-800/70 backdrop-blur-xl p-8 rounded-2xl border border-purple-500/40 shadow-2xl"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
           >
-            <option value="">Seçiniz</option>
-            <option value="Male">Erkek</option>
-            <option value="Female">Kadın</option>
-            <option value="Other">Diğer</option>
-          </select>
-        </div>
+            <motion.h2
+              className="text-4xl sm:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-indigo-400 to-blue-400"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              Kişisel Bilgiler
+            </motion.h2>
+            <motion.div
+              className="w-32 h-1.5 bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 rounded-full mx-auto mb-4"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+            />
+            <motion.p
+              className="text-lg text-gray-200"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+            >
+              Bilgilerinizi güncelleyin
+            </motion.p>
+          </motion.div>
+        </Tilt>
 
-        <div className="text-center">
-          <button
-            type="submit"
-            className="w-full py-3 bg-purple-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-all disabled:bg-gray-400"
-            disabled={loading}
+        <motion.form
+          onSubmit={handleSubmit}
+          className="bg-gradient-to-br from-gray-900/80 to-gray-800/80 shadow-xl p-8 rounded-xl space-y-6 border border-purple-500/30"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                className="text-center p-4 rounded-lg bg-red-900/40 text-red-300 border border-red-700/50"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
+
+          <div>
+            <label htmlFor="firstName" className="block text-sm font-medium text-gray-200">İsim</label>
+            <input
+              type="text"
+              id="firstName"
+              name="firstName"
+              value={userInfo.firstName}
+              onChange={handleChange}
+              className="w-full mt-1 p-3 border border-purple-500/50 rounded-lg bg-gray-800/50 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="lastName" className="block text-sm font-medium text-gray-200">Soyisim</label>
+            <input
+              type="text"
+              id="lastName"
+              name="lastName"
+              value={userInfo.lastName}
+              onChange={handleChange}
+              className="w-full mt-1 p-3 border border-purple-500/50 rounded-lg bg-gray-800/50 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-200">Telefon</label>
+            <input
+              type="text"
+              id="phone"
+              name="phone"
+              value={userInfo.phone}
+              onChange={handleChange}
+              className="w-full mt-1 p-3 border border-purple-500/50 rounded-lg bg-gray-800/50 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-200">E-posta</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={userInfo.email}
+              onChange={handleChange}
+              className="w-full mt-1 p-3 border border-purple-500/50 rounded-lg bg-gray-800/50 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="birthDate" className="block text-sm font-medium text-gray-200">Doğum Tarihi</label>
+            <input
+              type="date"
+              id="birthDate"
+              name="birthDate"
+              value={userInfo.birthDate}
+              onChange={handleChange}
+              className="w-full mt-1 p-3 border border-purple-500/50 rounded-lg bg-gray-800/50 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="gender" className="block text-sm font-medium text-gray-200">Cinsiyet</label>
+            <select
+              id="gender"
+              name="gender"
+              value={userInfo.gender}
+              onChange={handleChange}
+              className="w-full mt-1 p-3 border border-purple-500/50 rounded-lg bg-gray-800/50 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              required
+            >
+              <option value="" className="bg-gray-800">Seçiniz</option>
+              <option value="Male" className="bg-gray-800">Erkek</option>
+              <option value="Female" className="bg-gray-800">Kadın</option>
+              <option value="Other" className="bg-gray-800">Diğer</option>
+            </select>
+          </div>
+
+          <motion.div
+            className="text-center"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
           >
-            {loading ? 'Güncelleniyor...' : 'Güncelle'}
-          </button>
-        </div>
-      </form>
+            <button
+              type="submit"
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-full shadow-lg hover:shadow-purple-500/40 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
+              disabled={loading}
+            >
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+                    />
+                  </svg>
+                  Güncelleniyor...
+                </div>
+              ) : (
+                'Güncelle'
+              )}
+            </button>
+          </motion.div>
+        </motion.form>
+      </div>
     </div>
   );
 };
