@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { FiLock, FiUser, FiMail, FiKey, FiShield, FiLogIn } from 'react-icons/fi';
 
-// Giriş yap sayfasına uygun ikonlar
+// Security icons configuration
 const securityIcons = [
   { icon: <FiLock />, name: 'lock', size: 24 },
   { icon: <FiUser />, name: 'user', size: 28 },
@@ -18,6 +18,26 @@ const securityIcons = [
   { icon: <FiShield />, name: 'shield', size: 30 },
   { icon: <FiLogIn />, name: 'login', size: 32 },
 ];
+
+// Floating icons configuration
+const floatingIcons = securityIcons.map((icon, i) => ({
+  ...icon,
+  id: i,
+  x: Math.random() * 100,
+  y: Math.random() * 100,
+  z: Math.random() * 20 - 10,
+  delay: Math.random() * 4,
+  duration: Math.random() * 6 + 6,
+}));
+
+// Particles configuration
+const particles = Array.from({ length: 15 }).map((_, i) => ({
+  id: i,
+  x: Math.random() * 100,
+  y: Math.random() * 100,
+  z: Math.random() * 100 - 50,
+  size: Math.random() * 4 + 1,
+}));
 
 const AnimatedLink = ({ href, children, className }) => {
   return (
@@ -61,7 +81,7 @@ const Login = () => {
     }
   }, []);
 
-  // Mouse movement for 3D form tilt (sadece formu etkiler)
+  // Mouse movement for form tilt
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
@@ -101,26 +121,6 @@ const Login = () => {
     setIsRedirecting(true);
     setTimeout(() => router.push('/'), 500);
   };
-
-  // 3D Floating Icons Background
-  const floatingIcons = securityIcons.map((icon, i) => ({
-    ...icon,
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    z: Math.random() * 20 - 10, // Daha dar z aralığı
-    delay: Math.random() * 4,
-    duration: Math.random() * 6 + 6, // 6-12 saniye arası animasyon
-  }));
-
-  // 3D Particle background
-  const particles = Array.from({ length: 15 }).map((_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    z: Math.random() * 100 - 50,
-    size: Math.random() * 4 + 1,
-  }));
 
   return (
     <div className="fixed inset-0 h-screen w-screen bg-black flex items-center justify-center p-4 overflow-hidden">
@@ -177,10 +177,10 @@ const Login = () => {
               translateZ: `${icon.z}px`,
             }}
             animate={{
-              y: [0, -30, 0], // Yukarı-aşağı hareket
-              x: [0, 20, 0], // Sağa-sola hareket
-              scale: [1, 1.15, 1], // Hafif ölçek değişimi
-              rotateZ: [0, 45, 0], // Hafif rotasyon
+              y: [0, -30, 0],
+              x: [0, 20, 0],
+              scale: [1, 1.15, 1],
+              rotateZ: [0, 45, 0],
             }}
             transition={{
               duration: icon.duration,
@@ -200,7 +200,7 @@ const Login = () => {
         ))}
       </div>
 
-      {/* Gradient Background with Gray-to-Purple Transition */}
+      {/* Gradient Background */}
       <motion.div
         className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black pointer-events-none z-0"
         animate={{
@@ -213,7 +213,7 @@ const Login = () => {
         transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      {/* 3D Form Container with Mouse-Driven Tilt */}
+      {/* 3D Form Container */}
       <motion.form
         initial={{ opacity: 0, y: 50, rotateX: -30 }}
         animate={{
@@ -230,7 +230,7 @@ const Login = () => {
         className="relative z-10 w-full max-w-md bg-gradient-to-br from-gray-900/80 to-gray-800/80 rounded-2xl p-8 border border-purple-500/30 shadow-2xl backdrop-blur-sm"
         style={{ perspective: 1000 }}
       >
-        {/* Form Header with 3D Bounce */}
+        {/* Form Header */}
         <div className="text-center mb-8">
           <motion.div
             className="w-20 h-20 bg-purple-600/30 rounded-full flex items-center justify-center mx-auto mb-4"
@@ -274,7 +274,7 @@ const Login = () => {
           )}
         </AnimatePresence>
 
-        {/* Email Input with 3D Tilt */}
+        {/* Email Input */}
         <div className="relative mb-6">
           <label className="block text-sm font-medium text-gray-300 mb-2">E-posta Adresi</label>
           <motion.input
@@ -295,7 +295,7 @@ const Login = () => {
           />
         </div>
 
-        {/* Password Input with 3D Tilt */}
+        {/* Password Input */}
         <div className="relative mb-6">
           <label className="block text-sm font-medium text-gray-300 mb-2">Şifre</label>
           <div className="relative">
@@ -343,7 +343,7 @@ const Login = () => {
           </AnimatedLink>
         </div>
 
-        {/* Submit Button with 3D Flip */}
+        {/* Submit Button */}
         <motion.button
           type="submit"
           className="relative w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-lg font-semibold overflow-hidden"
@@ -368,7 +368,7 @@ const Login = () => {
           <span className="relative z-10">Giriş Yap</span>
         </motion.button>
 
-        {/* Continue Without Login Button with 3D Flip */}
+        {/* Continue Without Login Button */}
         <motion.button
           type="button"
           onClick={handleContinueWithoutLogin}
