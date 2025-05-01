@@ -87,7 +87,7 @@ export default function ClientLayout({ children }) {
                 whileTap={{ scale: 0.95 }}
               >
                 <Image
-                  src="/images/cinereserve.png"
+                  src="https://firebasestorage.googleapis.com/v0/b/cinereserve-6150e.firebasestorage.app/o/Cinereserve.png?alt=media&token=c5daef3a-6c81-4ec4-89ca-28eec7548d14"
                   alt="CineReserve"
                   width={64}
                   height={64}
