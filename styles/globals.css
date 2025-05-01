@@ -4,8 +4,6 @@
 @import 'swiper/css/pagination';
 @import 'swiper/css/effect-fade';
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
   --dark-900: #0f172a;
   --dark-800: #1e293b;
@@ -15,7 +13,7 @@
   --accent-dark: #6d28d9;
   --text-primary: #f8fafc;
   --text-secondary: #e2e8f0;
-  --radius: 0.625rem;
+  --radius: 0.5rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
@@ -46,11 +44,24 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    font-size: 16px;
+  }
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-8px); }
 }
 
 @keyframes pulse {
@@ -59,7 +70,7 @@
 }
 
 @keyframes slideIn {
-  from { transform: translateY(20px); opacity: 0; }
+  from { transform: translateY(15px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
@@ -72,54 +83,57 @@ body {
     radial-gradient(circle at 10% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 20%),
     radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 20%);
   background-attachment: fixed;
+  line-height: 1.5;
 }
 
-/* Header Styles */
 header {
   background: rgba(30, 41, 59, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 1rem 0;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 0.75rem 0;
   position: sticky;
   top: 0;
   z-index: 100;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 header:hover {
   background: rgba(30, 41, 59, 0.95);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 3px 20px rgba(0, 0, 0, 0.25);
 }
 
 header img {
-  border-radius: 0.75rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 0.5rem;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  width: 48px;
+  height: 48px;
 }
 
 header img:hover {
-  transform: rotate(2deg) scale(1.05);
-  box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4);
+  transform: rotate(2deg) scale(1.03);
+  box-shadow: 0 8px 20px -5px rgba(124, 58, 237, 0.3);
 }
 
 .nav-link {
   position: relative;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: color 0.25s ease;
+  padding: 0.4rem 0.7rem;
 }
 
 .nav-link::after {
   content: '';
   position: absolute;
-  bottom: -4px;
+  bottom: -3px;
   left: 0;
   width: 0;
   height: 2px;
   background: var(--accent);
-  transition: width 0.3s ease;
+  transition: width 0.25s ease;
 }
 
 .nav-link:hover {
@@ -133,14 +147,15 @@ header img:hover {
 .login-button {
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
-  padding: 0.6rem 1.5rem;
+  padding: 0.5rem 1.25rem;
   border-radius: 9999px;
   font-weight: 600;
   text-decoration: none;
-  box-shadow: 0 4px 6px rgba(124, 58, 237, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: 0 3px 5px rgba(124, 58, 237, 0.25);
+  transition: all 0.25s ease;
   position: relative;
   overflow: hidden;
+  font-size: 0.9rem;
 }
 
 .login-button::before {
@@ -150,105 +165,96 @@ header img:hover {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: 0.5s;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transition: 0.4s;
 }
 
 .login-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px rgba(124, 58, 237, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 12px rgba(124, 58, 237, 0.3);
 }
 
 .login-button:hover::before {
   left: 100%;
 }
 
-/* Movie/Cinema Cards */
-.movie-card,
-.cinema-card {
+.movie-card, .cinema-card {
   background: var(--dark-800);
-  border-radius: 1rem;
+  border-radius: 0.75rem;
   overflow: hidden;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  animation: slideIn 0.6s ease-out forwards;
+  animation: slideIn 0.5s ease-out forwards;
 }
 
-.movie-card::before,
-.cinema-card::before {
+.movie-card::before, .cinema-card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, transparent 60%, rgba(0, 0, 0, 0.7));
+  background: linear-gradient(to bottom, transparent 60%, rgba(0, 0, 0, 0.6));
   z-index: 1;
 }
 
-.movie-card:hover,
-.cinema-card:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(124, 58, 237, 0.2);
+.movie-card:hover, .cinema-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 15px 20px -5px rgba(0, 0, 0, 0.25), 0 8px 8px -5px rgba(124, 58, 237, 0.15);
 }
 
-.movie-card img,
-.cinema-card img {
+.movie-card img, .cinema-card img {
   width: 100%;
-  height: 280px;
+  height: 240px;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  transition: transform 0.4s ease;
 }
 
-.movie-card:hover img,
-.cinema-card:hover img {
-  transform: scale(1.1);
+.movie-card:hover img, .cinema-card:hover img {
+  transform: scale(1.08);
 }
 
-.movie-card .content,
-.cinema-card .content {
-  padding: 1.5rem;
+.movie-card .content, .cinema-card .content {
+  padding: 1rem;
   position: relative;
   z-index: 2;
 }
 
-.movie-card h3,
-.cinema-card h3 {
-  font-size: 1.25rem;
+.movie-card h3, .cinema-card h3 {
+  font-size: 1.1rem;
   font-weight: 700;
   color: white;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
-.movie-card p,
-.cinema-card p {
+.movie-card p, .cinema-card p {
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
-/* Button Styles */
 .button {
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
-  padding: 0.8rem 2rem;
+  padding: 0.7rem 1.5rem;
   border-radius: 9999px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 4px 6px rgba(124, 58, 237, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: 0 3px 5px rgba(124, 58, 237, 0.25);
+  transition: all 0.25s ease;
   display: inline-block;
   border: none;
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  font-size: 0.9rem;
 }
 
 .button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 15px 20px rgba(124, 58, 237, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 15px rgba(124, 58, 237, 0.3);
 }
 
 .button:active {
@@ -262,25 +268,24 @@ header img:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
   transform: translateX(-100%);
-  transition: 0.5s;
+  transition: 0.4s;
 }
 
 .button:hover::after {
   transform: translateX(100%);
 }
 
-/* Special Effects */
 .now-playing-badge {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 0.8rem;
+  right: 0.8rem;
   background: #ef4444;
   color: white;
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -288,31 +293,27 @@ header img:hover {
   z-index: 3;
 }
 
-/* Responsive Design */
 @media screen and (max-width: 768px) {
   header {
-    padding: 0.75rem 0;
+    padding: 0.6rem 0;
   }
 
-  .movie-card,
-  .cinema-card {
+  .movie-card, .cinema-card {
     animation: none;
   }
 
-  .movie-card img,
-  .cinema-card img {
-    height: 200px;
+  .movie-card img, .cinema-card img {
+    height: 180px;
   }
 
   .button {
-    padding: 0.7rem 1.5rem;
-    font-size: 0.9rem;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
   }
 }
 
-/* Scrollbar Styling */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -321,71 +322,68 @@ header img:hover {
 
 ::-webkit-scrollbar-thumb {
   background: var(--accent);
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-light);
 }
 
-/* Swiper Customization */
 .swiper {
-  padding: 20px 0 40px !important;
+  padding: 1rem 0 2rem !important;
 }
 
 .swiper-slide {
   opacity: 0.7;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
 .swiper-slide-active {
   opacity: 1;
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 
 .swiper-pagination-bullet {
   background: var(--text-secondary) !important;
   opacity: 0.6 !important;
+  width: 8px !important;
+  height: 8px !important;
 }
 
 .swiper-pagination-bullet-active {
   background: var(--accent) !important;
   opacity: 1 !important;
-  transform: scale(1.2);
-}
-
-.swiper-button-next,
-.swiper-button-prev {
-  color: var(--accent) !important;
-  background: rgba(30, 41, 59, 0.7);
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 50%;
-  backdrop-filter: blur(5px);
-  transition: all 0.3s ease;
-}
-
-.swiper-button-next:hover,
-.swiper-button-prev:hover {
-  background: rgba(30, 41, 59, 0.9);
   transform: scale(1.1);
 }
 
-/* Floating Animation for Featured Items */
-.featured-movie {
-  animation: float 6s ease-in-out infinite;
+.swiper-button-next, .swiper-button-prev {
+  color: var(--accent) !important;
+  background: rgba(30, 41, 59, 0.7);
+  width: 35px !important;
+  height: 35px !important;
+  border-radius: 50%;
+  backdrop-filter: blur(4px);
+  transition: all 0.25s ease;
 }
 
-/* Page Transitions */
+.swiper-button-next:hover, .swiper-button-prev:hover {
+  background: rgba(30, 41, 59, 0.85);
+  transform: scale(1.08);
+}
+
+.featured-movie {
+  animation: float 5s ease-in-out infinite;
+}
+
 .page-enter {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(15px);
 }
 
 .page-enter-active {
   opacity: 1;
   transform: translateY(0);
-  transition: all 0.4s ease;
+  transition: all 0.3s ease;
 }
 
 .page-exit {
@@ -394,13 +392,13 @@ header img:hover {
 
 .page-exit-active {
   opacity: 0;
-  transition: all 0.4s ease;
+  transition: all 0.3s ease;
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
