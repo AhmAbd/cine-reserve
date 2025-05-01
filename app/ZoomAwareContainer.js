@@ -2,54 +2,63 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import SimpleBar from 'simplebar-react';
+import 'simplebar-react/dist/simplebar.min.css';
 
 export default function ZoomAwareContainer({ children }) {
   const [zoomFactor, setZoomFactor] = useState(1);
-  const [dimensions, setDimensions] = useState({ 
+  const [dimensions, setDimensions] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1920,
-    height: typeof window !== 'undefined' ? window.innerHeight : 1080
+    height: typeof window !== 'undefined' ? window.innerHeight : 1080,
   });
 
   useEffect(() => {
     const handleResize = () => {
       setDimensions({
         width: window.innerWidth,
-        height: window.innerHeight
+        height: window.innerHeight,
       });
-      
-      // Detect zoom level
+
+      // Zoom seviyesini tespit et
+      let zoom = 1;
       if (window.visualViewport) {
-        setZoomFactor(window.visualViewport.scale);
+        zoom = window.visualViewport.scale || 1;
       } else {
-        // Fallback for browsers without visualViewport
-        const zoom = window.innerWidth / window.outerWidth;
-        setZoomFactor(zoom);
+        zoom = window.innerWidth / (window.outerWidth || window.innerWidth);
       }
+      setZoomFactor(Math.max(0.1, Math.min(2, zoom))); // Zoom faktörünü sınırla
     };
 
     window.addEventListener('resize', handleResize);
-    handleResize(); // Initial call
+    handleResize(); // İlk çağrı
 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (
     <motion.div
-      className="fixed inset-0 min-h-full min-w-full bg-black flex items-center justify-center p-4 overflow-auto"
+      className="relative min-h-screen min-w-full bg-black flex items-start justify-center p-4"
       style={{
         '--zoom-factor': zoomFactor,
         '--viewport-width': `${dimensions.width}px`,
-        '--viewport-height': `${dimensions.height}px`
+        '--viewport-height': `${dimensions.height}px`,
       }}
     >
       <motion.div
-        className="w-full h-full"
+        className="w-full"
         animate={{
-          scale: Math.min(1, 1/zoomFactor),
+          scale: Math.min(1, 1 / zoomFactor),
         }}
         transition={{ type: 'spring', stiffness: 100 }}
       >
-        {children}
+        <SimpleBar
+          style={{ maxHeight: '100vh', width: '100%' }}
+          className="simplebar-custom"
+        >
+          <div className="min-h-screen w-full p-4">
+            {children}
+          </div>
+        </SimpleBar>
       </motion.div>
     </motion.div>
   );

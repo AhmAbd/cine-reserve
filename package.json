@@ -31,6 +31,7 @@
     "react-parallax-tilt": "^1.7.293",
     "react-select": "^5.10.1",
     "react-toastify": "^11.0.5",
+    "simplebar-react": "^3.3.0",
     "swiper": "^11.2.6",
     "tailwind-merge": "^3.2.0",
     "tailwindcss-animate": "^1.0.7",
