@@ -87,26 +87,38 @@ body {
     radial-gradient(circle at 10% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 20%),
     radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 20%);
   background-attachment: fixed;
-  transform-origin: top left;
-  width: calc(100vw / var(--zoom-factor));
-  height: calc(100vh / var(--zoom-factor));
-  transform: scale(var(--zoom-factor));
-  position: absolute;
-  top: 0;
-  left: 0;
-  overflow: hidden;
+  position: relative;
 }
 
 .zoom-wrapper {
-  position: fixed;
-  inset: 0;
+  position: relative;
   min-height: 100vh;
   min-width: 100vw;
-  overflow: auto;
-  transform: scale(calc(1 / var(--zoom-factor)));
-  transform-origin: top left;
-  width: calc(100vw * var(--zoom-factor));
-  height: calc(100vh * var(--zoom-factor));
+}
+
+/* SimpleBar Stilleri */
+.simplebar-custom .simplebar-scrollbar::before {
+  background: var(--accent);
+  border-radius: 4px;
+  width: 8px;
+}
+
+.simplebar-custom .simplebar-track .simplebar-scrollbar.simplebar-hover::before,
+.simplebar-custom .simplebar-track .simplebar-scrollbar:hover::before {
+  background: var(--accent-light);
+}
+
+.simplebar-custom .simplebar-track {
+  background: var(--dark-800);
+  border-radius: 4px;
+}
+
+.simplebar-custom .simplebar-track .simplebar-scrollbar {
+  width: 8px;
+}
+
+.simplebar-custom .simplebar-content-wrapper {
+  overflow-y: auto !important;
 }
 
 header {
@@ -337,23 +349,6 @@ header img:hover {
     padding: 0.4rem 1rem;
     font-size: 0.75rem;
   }
-}
-
-::-webkit-scrollbar {
-  width: 5px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--dark-800);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border-radius: 2px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-light);
 }
 
 .swiper {
