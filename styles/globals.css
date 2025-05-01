@@ -13,7 +13,7 @@
   --accent-dark: #6d28d9;
   --text-primary: #f8fafc;
   --text-secondary: #e2e8f0;
-  --radius: 0.5rem;
+  --radius: 0.375rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
@@ -44,24 +44,24 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
-  font-size: 14px;
+  font-size: 12px;
 }
 
 @media (min-width: 768px) {
   :root {
-    font-size: 15px;
+    font-size: 13px;
   }
 }
 
 @media (min-width: 1024px) {
   :root {
-    font-size: 16px;
+    font-size: 14px;
   }
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  50% { transform: translateY(-6px); }
 }
 
 @keyframes pulse {
@@ -70,70 +70,71 @@
 }
 
 @keyframes slideIn {
-  from { transform: translateY(15px); opacity: 0; }
+  from { transform: translateY(12px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
 body {
+  zoom: 0.9;
   background-color: var(--dark-900);
   color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   margin: 0;
+  line-height: 1.4;
   background-image: 
     radial-gradient(circle at 10% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 20%),
     radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 20%);
   background-attachment: fixed;
-  line-height: 1.5;
 }
 
 header {
   background: rgba(30, 41, 59, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  padding: 0.75rem 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0.5rem 0;
   position: sticky;
   top: 0;
   z-index: 100;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 header:hover {
   background: rgba(30, 41, 59, 0.95);
-  box-shadow: 0 3px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
 }
 
 header img {
-  border-radius: 0.5rem;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  width: 48px;
-  height: 48px;
+  border-radius: 0.375rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  width: 40px;
+  height: 40px;
 }
 
 header img:hover {
-  transform: rotate(2deg) scale(1.03);
-  box-shadow: 0 8px 20px -5px rgba(124, 58, 237, 0.3);
+  transform: rotate(1.5deg) scale(1.03);
+  box-shadow: 0 6px 15px -3px rgba(124, 58, 237, 0.25);
 }
 
 .nav-link {
   position: relative;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: color 0.25s ease;
-  padding: 0.4rem 0.7rem;
+  transition: color 0.2s ease;
+  padding: 0.3rem 0.6rem;
 }
 
 .nav-link::after {
   content: '';
   position: absolute;
-  bottom: -3px;
+  bottom: -2px;
   left: 0;
   width: 0;
-  height: 2px;
+  height: 1.5px;
   background: var(--accent);
-  transition: width 0.25s ease;
+  transition: width 0.2s ease;
 }
 
 .nav-link:hover {
@@ -147,15 +148,15 @@ header img:hover {
 .login-button {
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
-  padding: 0.5rem 1.25rem;
+  padding: 0.4rem 1rem;
   border-radius: 9999px;
   font-weight: 600;
   text-decoration: none;
-  box-shadow: 0 3px 5px rgba(124, 58, 237, 0.25);
-  transition: all 0.25s ease;
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+  transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .login-button::before {
@@ -166,12 +167,12 @@ header img:hover {
   width: 100%;
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-  transition: 0.4s;
+  transition: 0.3s;
 }
 
 .login-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 12px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 6px 10px rgba(124, 58, 237, 0.25);
 }
 
 .login-button:hover::before {
@@ -180,12 +181,12 @@ header img:hover {
 
 .movie-card, .cinema-card {
   background: var(--dark-800);
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   overflow: hidden;
-  box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 6px 10px -3px rgba(0, 0, 0, 0.1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  animation: slideIn 0.5s ease-out forwards;
+  animation: slideIn 0.4s ease-out forwards;
 }
 
 .movie-card::before, .cinema-card::before {
@@ -200,61 +201,61 @@ header img:hover {
 }
 
 .movie-card:hover, .cinema-card:hover {
-  transform: translateY(-6px) scale(1.01);
-  box-shadow: 0 15px 20px -5px rgba(0, 0, 0, 0.25), 0 8px 8px -5px rgba(124, 58, 237, 0.15);
+  transform: translateY(-5px) scale(1.01);
+  box-shadow: 0 12px 15px -5px rgba(0, 0, 0, 0.2), 0 6px 6px -5px rgba(124, 58, 237, 0.1);
 }
 
 .movie-card img, .cinema-card img {
   width: 100%;
-  height: 240px;
+  height: 200px;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  transition: transform 0.35s ease;
 }
 
 .movie-card:hover img, .cinema-card:hover img {
-  transform: scale(1.08);
+  transform: scale(1.07);
 }
 
 .movie-card .content, .cinema-card .content {
-  padding: 1rem;
+  padding: 0.8rem;
   position: relative;
   z-index: 2;
 }
 
 .movie-card h3, .cinema-card h3 {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: white;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.3rem;
 }
 
 .movie-card p, .cinema-card p {
   color: var(--text-secondary);
-  font-size: 0.85rem;
-  line-height: 1.4;
+  font-size: 0.75rem;
+  line-height: 1.3;
 }
 
 .button {
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
-  padding: 0.7rem 1.5rem;
+  padding: 0.5rem 1.2rem;
   border-radius: 9999px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 3px 5px rgba(124, 58, 237, 0.25);
-  transition: all 0.25s ease;
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+  transition: all 0.2s ease;
   display: inline-block;
   border: none;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 15px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 8px 12px rgba(124, 58, 237, 0.25);
 }
 
 .button:active {
@@ -270,7 +271,7 @@ header img:hover {
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
   transform: translateX(-100%);
-  transition: 0.4s;
+  transition: 0.3s;
 }
 
 .button:hover::after {
@@ -279,13 +280,13 @@ header img:hover {
 
 .now-playing-badge {
   position: absolute;
-  top: 0.8rem;
-  right: 0.8rem;
+  top: 0.6rem;
+  right: 0.6rem;
   background: #ef4444;
   color: white;
-  padding: 0.2rem 0.6rem;
+  padding: 0.15rem 0.5rem;
   border-radius: 9999px;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -294,8 +295,12 @@ header img:hover {
 }
 
 @media screen and (max-width: 768px) {
+  :root {
+    font-size: 11px;
+  }
+  
   header {
-    padding: 0.6rem 0;
+    padding: 0.4rem 0;
   }
 
   .movie-card, .cinema-card {
@@ -303,17 +308,17 @@ header img:hover {
   }
 
   .movie-card img, .cinema-card img {
-    height: 180px;
+    height: 160px;
   }
 
   .button {
-    padding: 0.6rem 1.2rem;
-    font-size: 0.85rem;
+    padding: 0.4rem 1rem;
+    font-size: 0.75rem;
   }
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -322,7 +327,7 @@ header img:hover {
 
 ::-webkit-scrollbar-thumb {
   background: var(--accent);
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -330,24 +335,24 @@ header img:hover {
 }
 
 .swiper {
-  padding: 1rem 0 2rem !important;
+  padding: 0.8rem 0 1.5rem !important;
 }
 
 .swiper-slide {
   opacity: 0.7;
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .swiper-slide-active {
   opacity: 1;
-  transform: scale(1.03);
+  transform: scale(1.02);
 }
 
 .swiper-pagination-bullet {
   background: var(--text-secondary) !important;
   opacity: 0.6 !important;
-  width: 8px !important;
-  height: 8px !important;
+  width: 6px !important;
+  height: 6px !important;
 }
 
 .swiper-pagination-bullet-active {
@@ -359,16 +364,16 @@ header img:hover {
 .swiper-button-next, .swiper-button-prev {
   color: var(--accent) !important;
   background: rgba(30, 41, 59, 0.7);
-  width: 35px !important;
-  height: 35px !important;
+  width: 30px !important;
+  height: 30px !important;
   border-radius: 50%;
-  backdrop-filter: blur(4px);
-  transition: all 0.25s ease;
+  backdrop-filter: blur(3px);
+  transition: all 0.2s ease;
 }
 
 .swiper-button-next:hover, .swiper-button-prev:hover {
   background: rgba(30, 41, 59, 0.85);
-  transform: scale(1.08);
+  transform: scale(1.05);
 }
 
 .featured-movie {
@@ -377,13 +382,13 @@ header img:hover {
 
 .page-enter {
   opacity: 0;
-  transform: translateY(15px);
+  transform: translateY(12px);
 }
 
 .page-enter-active {
   opacity: 1;
   transform: translateY(0);
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 }
 
 .page-exit {
@@ -392,7 +397,7 @@ header img:hover {
 
 .page-exit-active {
   opacity: 0;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 }
 
 @theme inline {
