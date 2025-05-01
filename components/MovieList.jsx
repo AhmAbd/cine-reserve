@@ -34,8 +34,8 @@ const MovieList = () => {
     if (!container) return;
 
     const { scrollLeft, scrollWidth, clientWidth } = container;
-    setAtStart(scrollLeft <= 10); // Added small buffer
-    setAtEnd(scrollLeft + clientWidth >= scrollWidth - 10); // Added small buffer
+    setAtStart(scrollLeft <= 10);
+    setAtEnd(scrollLeft + clientWidth >= scrollWidth - 10);
   };
 
   useEffect(() => {
@@ -46,7 +46,7 @@ const MovieList = () => {
     checkScrollPosition();
 
     return () => container.removeEventListener("scroll", checkScrollPosition);
-  }, [movies]); // Added movies as dependency to recalculate when data loads
+  }, [movies]);
 
   const scroll = (direction) => {
     const container = containerRef.current;
@@ -54,8 +54,6 @@ const MovieList = () => {
 
     const scrollAmount = direction === "left" ? -container.offsetWidth : container.offsetWidth;
     const targetScroll = container.scrollLeft + scrollAmount;
-
-    // Ensure we don't scroll past boundaries
     const maxScroll = container.scrollWidth - container.clientWidth;
     const boundedTarget = Math.max(0, Math.min(targetScroll, maxScroll));
 
@@ -79,7 +77,6 @@ const MovieList = () => {
       if (progress < 1) {
         requestAnimationFrame(animateScroll);
       } else {
-        // Force recheck of scroll position after animation completes
         checkScrollPosition();
       }
     };
@@ -98,7 +95,7 @@ const MovieList = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
     >
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 relative">
         <motion.h2 
           className="text-3xl font-bold text-white mb-8 font-cinematic"
           initial={{ opacity: 0, x: -20 }}
@@ -114,91 +111,102 @@ const MovieList = () => {
           />
         </motion.h2>
 
-        <AnimatePresence>
-          {showButtons && (
-            <motion.button
-              onClick={() => scroll("left")}
-              disabled={atStart}
-              className={`absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 text-purple-400 p-4 rounded-full shadow-lg z-10 transition-all duration-300 ${
-                atStart ? "opacity-30 cursor-not-allowed" : "opacity-100 hover:scale-110"
-              }`}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: atStart ? 0.3 : 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+        <div className="relative">
+          <AnimatePresence>
+            {showButtons && (
+              <motion.button
+                onClick={() => scroll("left")}
+                disabled={atStart}
+                className={`absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-2 bg-gradient-to-r from-purple-600/90 to-indigo-600/90 hover:from-purple-600 hover:to-indigo-600 text-white p-3 rounded-full shadow-lg z-10 transition-all duration-300 ${
+                  atStart ? "opacity-0 cursor-not-allowed" : "opacity-100 hover:scale-110"
+                }`}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: atStart ? 0 : 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                whileTap={{ scale: 0.9 }}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                }}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                   strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </motion.button>
-          )}
-        </AnimatePresence>
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </motion.button>
+            )}
+          </AnimatePresence>
 
-        <AnimatePresence>
-          {showButtons && (
-            <motion.button
-              onClick={() => scroll("right")}
-              disabled={atEnd}
-              className={`absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 text-purple-400 p-4 rounded-full shadow-lg z-10 transition-all duration-300 ${
-                atEnd ? "opacity-30 cursor-not-allowed" : "opacity-100 hover:scale-110"
-              }`}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: atEnd ? 0.3 : 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+          <div
+            ref={containerRef}
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+            className="flex overflow-x-auto gap-6 no-scrollbar pb-4 scroll-smooth px-4" // px-4 olarak güncellendi
+          >
+            {movies.map((movie, index) => (
+              <motion.div
+                key={movie.slug || index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.5 }}
+                whileHover={{ scale: 1.03 }}
+                onMouseEnter={() => setIsHovered(index)}
+                onMouseLeave={() => setIsHovered(null)}
+                className="flex-shrink-0"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </motion.button>
-          )}
-        </AnimatePresence>
+                <Link href={`/movies/${movie.slug}`}>
+                  <MovieCard movie={movie} isHovered={isHovered === index} />
+                </Link>
+              </motion.div>
+            ))}
+          </div>
 
-        <div
-          ref={containerRef}
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-          className="flex overflow-x-auto gap-8 no-scrollbar pb-4 scroll-smooth" // Added scroll-smooth
-        >
-          {movies.map((movie, index) => (
-            <motion.div
-              key={movie.slug || index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
-              whileHover={{ scale: 1.03 }}
-              onMouseEnter={() => setIsHovered(index)}
-              onMouseLeave={() => setIsHovered(null)}
-            >
-              <Link href={`/movies/${movie.slug}`}>
-                <MovieCard movie={movie} isHovered={isHovered === index} />
-              </Link>
-            </motion.div>
-          ))}
+          <AnimatePresence>
+            {showButtons && (
+              <motion.button
+                onClick={() => scroll("right")}
+                disabled={atEnd}
+                className={`absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-2 bg-gradient-to-r from-purple-600/90 to-indigo-600/90 hover:from-purple-600 hover:to-indigo-600 text-white p-3 rounded-full shadow-lg z-10 transition-all duration-300 ${
+                  atEnd ? "opacity-0 cursor-not-allowed" : "opacity-100 hover:scale-110"
+                }`}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: atEnd ? 0 : 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                whileTap={{ scale: 0.9 }}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </motion.section>

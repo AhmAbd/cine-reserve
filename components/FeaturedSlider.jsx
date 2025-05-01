@@ -2,11 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation, Autoplay, Pagination, EffectFade } from "swiper/modules";
+import { Navigation, Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
-import "swiper/css/effect-fade";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { db } from "../lib/firebase";
@@ -16,17 +15,42 @@ export default function FeaturedSlider() {
   const [movies, setMovies] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isFullScreenVideo, setIsFullScreenVideo] = useState(false);
-  const swiperRef = useRef(null);
   const iframeRef = useRef(null);
+  const swiperRef = useRef(null);
 
   useEffect(() => {
     const fetchMovies = async () => {
       const query = await getDocs(collection(db, "films"));
+      const currentTime = new Date();
       const data = [];
+      
       query.forEach((doc) => {
-        data.push({ id: doc.id, ...doc.data() });
+        const filmData = { id: doc.id, ...doc.data() };
+        let hasValidShowtime = false;
+
+        if (filmData.cinemas?.length > 0) {
+          for (const cinema of filmData.cinemas) {
+            try {
+              const showtime = cinema.showtime?.toDate
+                ? cinema.showtime.toDate()
+                : new Date(cinema.showtime);
+
+              if (!isNaN(showtime.getTime()) && showtime >= currentTime) {
+                hasValidShowtime = true;
+                break;
+              }
+            } catch (err) {
+              console.error('Error processing showtime for film:', filmData.title, err);
+            }
+          }
+        }
+
+        if (hasValidShowtime) {
+          data.push(filmData);
+        }
       });
-      console.log("Movies Data:", data);
+
+      console.log("Filtered Movies Data:", data);
       setMovies(data);
     };
     fetchMovies();
@@ -35,6 +59,7 @@ export default function FeaturedSlider() {
   const handleSlideChange = (swiper) => {
     setSelectedIndex(swiper.realIndex);
     setIsFullScreenVideo(false);
+    console.log("Current Real Index:", swiper.realIndex);
   };
 
   const handleTrailerClick = (e) => {
@@ -90,13 +115,249 @@ export default function FeaturedSlider() {
 
   if (!movies.length) return null;
 
+  // Tek film varsa, statik bir görünüm göster
+  if (movies.length === 1) {
+    const movie = movies[0];
+    const embedUrl = getEmbedUrl(movie.trailerUrl);
+    const thumbnailUrl = movie.trailerUrl
+      ? `https://img.youtube.com/vi/${
+          movie.trailerUrl.includes('watch?v=')
+            ? movie.trailerUrl.split('v=')[1]?.split('&')[0]
+            : movie.trailerUrl.split('/').pop()
+        }/maxresdefault.jpg`
+      : null;
+
+    return (
+      <section className="relative bg-[#0d0d1a] text-white py-8 overflow-hidden">
+        <div className="relative w-full h-[60vh] md:h-[80vh] flex items-center justify-center">
+          <div className="absolute inset-0 overflow-hidden">
+            <motion.div
+              className="absolute inset-0 w-full h-full"
+              style={{
+                backgroundImage: `url(${
+                  thumbnailUrl ||
+                  movie.posterUrl ||
+                  'https://via.placeholder.com/1920x1080'
+                })`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                filter: 'blur(20px) brightness(0.7)',
+                transform: 'scale(1.1)',
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent"></div>
+          </div>
+
+          <motion.div
+            className="absolute inset-0 w-full h-full overflow-hidden"
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+          >
+            <img
+              src={
+                thumbnailUrl ||
+                movie.posterUrl ||
+                'https://via.placeholder.com/1920x1080'
+              }
+              alt={`${movie.title} Background`}
+              className="w-full h-full object-cover brightness-90"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
+          </motion.div>
+
+          {isFullScreenVideo && (
+            <motion.div
+              className="fixed inset-0 w-screen h-screen z-50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="absolute inset-0 bg-black">
+                <iframe
+                  ref={iframeRef}
+                  src={`${embedUrl}?autoplay=1&enablejsapi=1`}
+                  title={movie.title}
+                  className="w-full h-full object-cover"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+              <motion.button
+                className="absolute top-6 right-6 bg-black/70 text-white p-3 rounded-full cursor-pointer z-60 hover:bg-black/90 transition-all duration-300"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                whileHover={{ scale: 1.1 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsFullScreenVideo(false);
+                }}
+                aria-label="Close trailer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </motion.button>
+            </motion.div>
+          )}
+
+          {!isFullScreenVideo && (
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none"
+            >
+              <motion.div
+                className="relative flex items-center justify-center bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full p-5 cursor-pointer pointer-events-auto border-4 border-white/20 shadow-2xl hover:border-white/40 transition-all duration-300"
+                whileHover={{ scale: 1.15, rotate: 15 }}
+                whileTap={{ scale: 0.9 }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                onClick={handleTrailerClick}
+                aria-label="Play trailer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-16 w-16 text-white"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <div className="absolute inset-0 rounded-full bg-white/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {!isFullScreenVideo && (
+            <motion.div
+              className="absolute z-30 top-1/2 left-8 md:left-12 -translate-y-1/2 w-full max-w-[700px] flex flex-col"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              <motion.span
+                className="text-base md:text-lg uppercase tracking-widest text-purple-400 font-semibold mb-4 drop-shadow"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                VİZYONDA
+              </motion.span>
+              <motion.h1
+                className="text-5xl md:text-7xl font-extrabold text-white uppercase mb-6 leading-tight drop-shadow-lg line-clamp-2 font-cinematic"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                {movie.title}
+              </motion.h1>
+              <motion.p
+                className="text-lg md:text-xl text-gray-200 mb-8 leading-relaxed drop-shadow line-clamp-3 font-cinematic"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                {truncateText(movie.description, 150)}
+              </motion.p>
+              <motion.div
+                className="flex items-center gap-6 mb-10"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+              >
+                <span className="text-white text-base md:text-lg font-medium drop-shadow">
+                  {movie.rating || "N/A"}
+                </span>
+                <span className="text-white text-base md:text-lg font-medium drop-shadow">
+                  {movie.genre}
+                </span>
+                <span className="text-white text-base md:text-lg font-medium drop-shadow">
+                  {movie.duration}
+                </span>
+              </motion.div>
+              <motion.div
+                className="flex gap-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+              >
+                <Link href={`/tickets?movie=${movie.id}`}>
+                  <motion.button
+                    className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-lg font-semibold uppercase tracking-wide flex items-center gap-3 shadow-lg text-lg hover:shadow-purple-500/30 transition-all duration-300"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 100 4v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2a2 2 0 100-4V6z" />
+                    </svg>
+                    Hemen Bilet Al
+                  </motion.button>
+                </Link>
+                <Link href={`/movies/${movie.slug}`}>
+                  <motion.button
+                    className="border-2 border-gray-400/50 text-white px-8 py-4 rounded-lg font-semibold uppercase tracking-wide flex items-center gap-3 bg-black/40 hover:bg-white/10 hover:border-white/80 text-lg transition-all duration-300"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    İncele
+                  </motion.button>
+                </Link>
+              </motion.div>
+            </motion.div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="relative bg-[#0d0d1a] text-white py-8 overflow-hidden">
       <div className="relative">
         <Swiper
-          modules={[Navigation, Autoplay, Pagination, EffectFade]}
-          onSwiper={(swiper) => (swiperRef.current = swiper)}
-          navigation={false}
+          modules={[Navigation, Autoplay, Pagination]}
+          navigation={{
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev',
+          }}
           autoplay={{
             delay: 8000,
             disableOnInteraction: false,
@@ -107,17 +368,13 @@ export default function FeaturedSlider() {
             el: '.swiper-pagination',
             type: 'bullets',
           }}
-          effect="fade"
-          fadeEffect={{
-            crossFade: true,
-          }}
-          speed={1200}
+          speed={600}
           spaceBetween={0}
           slidesPerView={1}
+          slidesPerGroup={1}
           onSlideChange={handleSlideChange}
-          loop
-          loopAdditionalSlides={1}
-          watchSlidesProgress
+          loop={true}
+          onSwiper={(swiper) => (swiperRef.current = swiper)}
         >
           {movies.map((movie, index) => {
             const embedUrl = getEmbedUrl(movie.trailerUrl);
@@ -132,9 +389,7 @@ export default function FeaturedSlider() {
             return (
               <SwiperSlide key={`${movie.slug}-${index}`}>
                 <div className="relative w-full h-[60vh] md:h-[80vh] flex items-center justify-center">
-                  {/* Enhanced Background Layers */}
                   <div className="absolute inset-0 overflow-hidden">
-                    {/* Blurred Background Layer */}
                     <motion.div
                       className="absolute inset-0 w-full h-full"
                       style={{
@@ -152,13 +407,10 @@ export default function FeaturedSlider() {
                       animate={{ opacity: 1 }}
                       transition={{ duration: 1.5, ease: "easeOut" }}
                     />
-                    
-                    {/* Gradient Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent"></div>
                     <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent"></div>
                   </div>
 
-                  {/* Main Sharp Image */}
                   <motion.div
                     className="absolute inset-0 w-full h-full overflow-hidden"
                     initial={{ opacity: 0, scale: 1.1 }}
@@ -177,7 +429,6 @@ export default function FeaturedSlider() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
                   </motion.div>
 
-                  {/* Full-Screen Video */}
                   {isFullScreenVideo && selectedIndex === index && (
                     <motion.div
                       className="fixed inset-0 w-screen h-screen z-50"
@@ -225,7 +476,6 @@ export default function FeaturedSlider() {
                     </motion.div>
                   )}
 
-                  {/* Play Button Overlay */}
                   {!isFullScreenVideo && (
                     <motion.div
                       className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none"
@@ -257,7 +507,6 @@ export default function FeaturedSlider() {
                     </motion.div>
                   )}
 
-                  {/* Movie Info Overlay */}
                   {!isFullScreenVideo && (
                     <motion.div
                       className="absolute z-30 top-1/2 left-8 md:left-12 -translate-y-1/2 w-full max-w-[700px] flex flex-col"
@@ -314,9 +563,7 @@ export default function FeaturedSlider() {
                         <Link href={`/tickets?movie=${movie.id}`}>
                           <motion.button
                             className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-lg font-semibold uppercase tracking-wide flex items-center gap-3 shadow-lg text-lg hover:shadow-purple-500/30 transition-all duration-300"
-                            whileHover={{
-                              scale: 1.05,
-                            }}
+                            whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={(e) => e.stopPropagation()}
                           >
@@ -334,9 +581,7 @@ export default function FeaturedSlider() {
                         <Link href={`/movies/${movie.slug}`}>
                           <motion.button
                             className="border-2 border-gray-400/50 text-white px-8 py-4 rounded-lg font-semibold uppercase tracking-wide flex items-center gap-3 bg-black/40 hover:bg-white/10 hover:border-white/80 text-lg transition-all duration-300"
-                            whileHover={{
-                              scale: 1.05,
-                            }}
+                            whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={(e) => e.stopPropagation()}
                           >
@@ -364,72 +609,38 @@ export default function FeaturedSlider() {
           })}
         </Swiper>
 
-        {/* Navigation Arrows */}
-        <motion.div
-          className="absolute left-4 md:left-8 top-1/2 transform -translate-y-1/2 z-20"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-        >
-          <motion.button
-            className="swiper-button-prev-1 cursor-pointer bg-black/50 text-purple-400 p-4 rounded-full shadow-lg border border-gray-600/50 hover:bg-black/70 hover:border-purple-400/50 transition-all duration-300"
-            whileHover={{
-              scale: 1.1,
-            }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => swiperRef.current?.slidePrev()}
-            aria-label="Previous slide"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-purple-400"
-              fill="none"
-              viewBox="0 0 24 24"
+        {/* Özel geçiş okları - GÜNCELLENMİŞ TASARIM */}
+        <div className="swiper-button-prev !hidden md:!flex">
+          <div className="relative w-14 h-14 flex items-center justify-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-indigo-800 rounded-full opacity-90 hover:opacity-100 transition-all duration-300 shadow-lg hover:shadow-purple-500/40"></div>
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-8 w-8 text-white relative z-10" 
+              fill="none" 
+              viewBox="0 0 24 24" 
               stroke="currentColor"
+              strokeWidth={2}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-          </motion.button>
-        </motion.div>
-
-        <motion.div
-          className="absolute right-4 md:right-8 top-1/2 transform -translate-y-1/2 z-20"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-        >
-          <motion.button
-            className="swiper-button-next-1 cursor-pointer bg-black/50 text-purple-400 p-4 rounded-full shadow-lg border border-gray-600/50 hover:bg-black/70 hover:border-purple-400/50 transition-all duration-300"
-            whileHover={{
-              scale: 1.1,
-            }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => swiperRef.current?.slideNext()}
-            aria-label="Next slide"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-purple-400"
-              fill="none"
-              viewBox="0 0 24 24"
+          </div>
+        </div>
+        <div className="swiper-button-next !hidden md:!flex">
+          <div className="relative w-14 h-14 flex items-center justify-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-indigo-800 rounded-full opacity-90 hover:opacity-100 transition-all duration-300 shadow-lg hover:shadow-purple-500/40"></div>
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-8 w-8 text-white relative z-10" 
+              fill="none" 
+              viewBox="0 0 24 24" 
               stroke="currentColor"
+              strokeWidth={2}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
-          </motion.button>
-        </motion.div>
+          </div>
+        </div>
 
-        {/* Custom Pagination */}
         <div className="swiper-pagination !relative !bottom-0 !mt-6 flex justify-center"></div>
       </div>
 
@@ -477,6 +688,34 @@ export default function FeaturedSlider() {
         }
         .font-cinematic {
           font-family: 'Montserrat', sans-serif;
+        }
+        .swiper-button-prev,
+        .swiper-button-next {
+          width: auto;
+          height: auto;
+          background: transparent;
+          border: none;
+          top: 50%;
+          transform: translateY(-50%);
+          margin: 0;
+          padding: 0;
+        }
+        .swiper-button-prev {
+          left: 40px;
+        }
+        .swiper-button-next {
+          right: 40px;
+        }
+        .swiper-button-prev::after,
+        .swiper-button-next::after {
+          display: none;
+        }
+        .swiper-button-disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .swiper-button-disabled .swiper-button-bg {
+          background: rgba(0, 0, 0, 0.5) !important;
         }
       `}</style>
     </section>
