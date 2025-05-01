@@ -11,8 +11,14 @@ import { app } from "../lib/firebase";
 import { motion } from "framer-motion";
 
 export default function ClientLayout({ children }) {
+  const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  // Set isClient to true only in the browser
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Admin sayfasını kontrol et
   const isAdminPage = pathname.startsWith("/admin");
@@ -40,16 +46,21 @@ export default function ClientLayout({ children }) {
     router.push("/");
   };
 
+  // Only render on the client side
+  if (!isClient) {
+    return null; // Prevents rendering during SSR
+  }
+
   return (
     <>
       {showHeader && (
-        <motion.header 
+        <motion.header
           className="custom-header bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-lg relative overflow-hidden"
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          <motion.div 
+          <motion.div
             className="absolute inset-0 opacity-20"
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.2 }}
@@ -59,7 +70,7 @@ export default function ClientLayout({ children }) {
             <div className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full bg-indigo-600 filter blur-3xl mix-blend-overlay"></div>
           </motion.div>
 
-          <div 
+          <div
             className="container relative z-10"
             style={{
               maxWidth: "1200px",
@@ -122,8 +133,17 @@ export default function ClientLayout({ children }) {
                     whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(168, 85, 247, 0.3)" }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     Çıkış Yap
                   </motion.button>
@@ -135,8 +155,17 @@ export default function ClientLayout({ children }) {
                     whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(168, 85, 247, 0.3)" }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V3zm10.293 4.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L10 8.586l2.293-2.293z" clipRule="evenodd" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M3 3a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V3zm10.293 4.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L10 8.586l2.293-2.293z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     Giriş Yap / Kayıt Ol
                   </motion.div>

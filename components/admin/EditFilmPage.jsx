@@ -1,14 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, Timestamp, collection, getDocs } from 'firebase/firestore';
 import { db, auth } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { motion } from 'framer-motion';
 
-export default function EditFilmPage() {
-  const { id } = useParams();
+export default function EditFilmPage({ id }) {
   const router = useRouter();
 
   // Film bilgileri
@@ -51,7 +50,7 @@ export default function EditFilmPage() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   const fetchFilm = async () => {
     if (!id) return;
