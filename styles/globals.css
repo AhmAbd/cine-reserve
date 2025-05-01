@@ -44,6 +44,9 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+  --zoom-factor: 1;
+  --viewport-width: 100vw;
+  --viewport-height: 100vh;
   font-size: 12px;
 }
 
@@ -75,7 +78,6 @@
 }
 
 body {
-  zoom: 0.9;
   background-color: var(--dark-900);
   color: var(--text-primary);
   font-family: 'Inter', sans-serif;
@@ -85,6 +87,26 @@ body {
     radial-gradient(circle at 10% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 20%),
     radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 20%);
   background-attachment: fixed;
+  transform-origin: top left;
+  width: calc(100vw / var(--zoom-factor));
+  height: calc(100vh / var(--zoom-factor));
+  transform: scale(var(--zoom-factor));
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+}
+
+.zoom-wrapper {
+  position: fixed;
+  inset: 0;
+  min-height: 100vh;
+  min-width: 100vw;
+  overflow: auto;
+  transform: scale(calc(1 / var(--zoom-factor)));
+  transform-origin: top left;
+  width: calc(100vw * var(--zoom-factor));
+  height: calc(100vh * var(--zoom-factor));
 }
 
 header {
