@@ -300,11 +300,12 @@ export default function CinemaDetailPage({ params }) {
                             <span className="text-gray-300">({movie.hallNumber})</span>
                           </p>
                           <Link
-                            href={`/tickets/select-seat?movie=${movie.slug}&cinema=${params.slug}`}
+                            href={`/tickets/select-type?movie=${movie.movieId}&cinema=${params.slug}&hall=${movie.hallNumber}`}
                             className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-300"
                           >
                             Bilet Al
                           </Link>
+
                         </div>
                       </div>
                     </motion.div>
