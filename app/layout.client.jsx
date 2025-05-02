@@ -24,7 +24,12 @@ export default function ClientLayout({ children }) {
   const isAdminPage = pathname.startsWith("/admin");
 
   // Header ve footer'ı gizlemek için koşul
-  const hiddenPaths = ["/login", "/register", "/reset-password", "/forgot-password"];
+  const hiddenPaths = [
+    "/login",
+    "/register",
+    "/reset-password",
+    "/forgot-password",
+  ];
   const showHeader = !hiddenPaths.includes(pathname) && !isAdminPage;
   const showFooter = !hiddenPaths.includes(pathname) && !isAdminPage;
 
@@ -87,7 +92,7 @@ export default function ClientLayout({ children }) {
                 whileTap={{ scale: 0.95 }}
               >
                 <Image
-                  src="https://firebasestorage.googleapis.com/v0/b/cinereserve-6150e.firebasestorage.app/o/Cinereserve.png?alt=media&token=c5daef3a-6c81-4ec4-89ca-28eec7548d14"
+                  src="/resim.png"
                   alt="CineReserve"
                   width={64}
                   height={64}
@@ -96,7 +101,9 @@ export default function ClientLayout({ children }) {
               </motion.div>
             </Link>
 
-            <nav style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
+            <nav
+              style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}
+            >
               <Link href="/movies">
                 <motion.span
                   className="nav-link text-gray-300 font-medium hover:text-purple-400 transition-colors duration-300"
@@ -130,7 +137,10 @@ export default function ClientLayout({ children }) {
                   <motion.button
                     onClick={handleLogout}
                     className="login-button bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-purple-500/20 flex items-center gap-2"
-                    whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(168, 85, 247, 0.3)" }}
+                    whileHover={{
+                      scale: 1.05,
+                      boxShadow: "0 0 15px rgba(168, 85, 247, 0.3)",
+                    }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <svg
@@ -152,7 +162,10 @@ export default function ClientLayout({ children }) {
                 <Link href="/login">
                   <motion.div
                     className="login-button bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-purple-500/20 flex items-center gap-2"
-                    whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(168, 85, 247, 0.3)" }}
+                    whileHover={{
+                      scale: 1.05,
+                      boxShadow: "0 0 15px rgba(168, 85, 247, 0.3)",
+                    }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <svg
