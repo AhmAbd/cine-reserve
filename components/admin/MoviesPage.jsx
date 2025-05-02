@@ -5,13 +5,15 @@ import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { db, auth } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { motion } from 'framer-motion';
-import { FaEdit, FaTrash } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import AddFilm from './AddFilm';
 
 export default function MoviesPage() {
   const [movies, setMovies] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -62,6 +64,12 @@ export default function MoviesPage() {
     movie.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleOutsideClick = (e) => {
+    if (e.target.className.includes('fixed inset-0')) {
+      setShowAddModal(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 h-screen w-screen bg-black flex items-center justify-center">
@@ -70,101 +78,38 @@ export default function MoviesPage() {
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
         >
-          <svg
-            className="w-full h-full"
-            viewBox="0 0 60 60"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M30 5 A25 25 0 0 1 55 30 A25 25 0 0 1 30 55"
-              stroke="url(#spinnerGradient)"
-              strokeWidth="5"
-              strokeLinecap="round"
-              strokeDasharray="100 150"
-            />
-            <defs>
-              <linearGradient id="spinnerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style={{ stopColor: '#a855f7', stopOpacity: 1 }} />
-                <stop offset="100%" style={{ stopColor: '#ec4899', stopOpacity: 1 }} />
-              </linearGradient>
-            </defs>
-          </svg>
-          <div
-            className="absolute inset-0 rounded-full"
-            style={{
-              boxShadow: '0 0 15px rgba(168, 85, 247, 0.5), 0 0 30px rgba(236, 72, 153, 0.3)',
-            }}
-          />
+          <div className="absolute inset-0 rounded-full border-4 border-t-purple-500 border-r-pink-500 border-b-transparent border-l-transparent animate-spin" />
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-900/30 to-pink-900/30 blur-sm" />
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 h-screen w-screen bg-black flex items-center justify-center p-4 overflow-hidden">
-      {/* Background Gradient */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-b from-black via-purple-950 to-black pointer-events-none z-0"
-        initial={{
-          background: 'linear-gradient(180deg, #000000 0%, #000000 50%, #000000 100%)',
-        }}
-        animate={{
-          background: 'linear-gradient(180deg, #000000 0%, #2d1a4b 50%, #000000 100%)',
-        }}
-        transition={{ duration: 3, ease: 'easeInOut' }}
-      />
-
-      {/* Static Stars */}
-      {[...Array(20)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-1 h-1 bg-white rounded-full pointer-events-none"
-          initial={{
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
-            scale: 0,
-            opacity: 0,
-          }}
-          animate={{
-            scale: Math.random() * 0.5 + 0.5,
-            opacity: Math.random() * 0.6 + 0.2,
-          }}
-          transition={{
-            duration: Math.random() * 2 + 1,
-            ease: 'easeInOut',
-            delay: Math.random() * 1,
-          }}
-        />
-      ))}
-
-      {/* Nebula Glow */}
-      <motion.div
-        className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-3xl pointer-events-none"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 0.4 }}
-        transition={{ duration: 2, ease: 'easeOut' }}
-      />
-      <motion.div
-        className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-full blur-3xl pointer-events-none"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 0.5 }}
-        transition={{ duration: 2.5, ease: 'easeOut' }}
-      />
-
-      {/* Main Container */}
-      <motion.div
-        className="relative z-10 bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-5xl mx-auto text-white border border-purple-500/20 flex flex-col"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
+    <div className="min-h-screen bg-black pt-20 pb-10 px-4"> {/* Changed from fixed to min-h-screen and added padding top */}
+      <motion.div className="absolute inset-0 bg-gradient-to-b from-black via-purple-950 to-black pointer-events-none z-0" />
+      <motion.div 
+        className="relative z-10 bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-5xl mx-auto text-white border border-purple-500/20 flex flex-col overflow-auto" 
+        initial={{ opacity: 0, y: 30 }} 
+        animate={{ opacity: 1, y: 0 }} 
         transition={{ duration: 0.6 }}
       >
-        <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-6 text-center">
-          🎬 Film Yönetimi
-        </h2>
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+            🎬 Film Yönetimi
+          </h2>
+          <motion.button
+            onClick={() => setShowAddModal(true)}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-5 py-2 rounded-lg flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <FaPlus /> Film Ekle
+          </motion.button>
+        </div>
 
-        {/* Search Bar */}
-        <div className="mb-6 relative">
+        {/* Search */}
+        <div className="mb-8 relative">
           <motion.input
             type="text"
             placeholder="Film ara..."
@@ -175,21 +120,15 @@ export default function MoviesPage() {
               borderColor: '#a855f7',
               boxShadow: '0 0 0 2px rgba(168, 85, 247, 0.3)',
             }}
-            transition={{ duration: 0.2 }}
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
         </div>
 
-        {/* Scrollable Table */}
+        {/* Movie Table */}
         <div className="max-h-[60vh] overflow-y-auto">
           {filteredMovies.length > 0 ? (
-            <motion.table
-              className="min-w-full bg-gray-800/30 rounded-lg overflow-hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4 }}
-            >
-              <thead className="bg-gray-700 text-left text-gray-300">
+            <table className="min-w-full bg-gray-800/30 rounded-lg overflow-hidden">
+              <thead className="bg-gray-700 text-left text-gray-300 sticky top-0">
                 <tr>
                   <th className="px-6 py-4">Başlık</th>
                   <th className="px-6 py-4">Tür</th>
@@ -199,48 +138,71 @@ export default function MoviesPage() {
               </thead>
               <tbody>
                 {filteredMovies.map((movie, index) => (
-                  <motion.tr
+                  <tr
                     key={movie.id}
-                    className="border-b border-gray-700"
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    whileHover={{ backgroundColor: 'rgba(55, 65, 81, 0.5)' }}
-                    transition={{ delay: index * 0.05, duration: 0.2 }}
+                    className="border-b border-gray-700 hover:bg-gray-700/20"
                   >
                     <td className="px-6 py-4 font-medium">{movie.title}</td>
                     <td className="px-6 py-4">{movie.genre}</td>
-                    <td className="px-6 py-4">{movie.duration} dk</td>
+                    <td className="px-6 py-4">{movie.duration}</td>
                     <td className="px-6 py-4 text-right space-x-2">
                       <motion.button
                         onClick={() => handleEdit(movie.id)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg"
-                        whileHover={{ scale: 1.05, backgroundColor: '#2563eb' }}
-                        transition={{ duration: 0.2 }}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/90 text-white rounded-lg"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        <FaEdit />
-                        Düzenle
+                        <FaEdit /> Düzenle
                       </motion.button>
                       <motion.button
                         onClick={() => handleDelete(movie.id)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-lg"
-                        whileHover={{ scale: 1.05, backgroundColor: '#dc2626' }}
-                        transition={{ duration: 0.2 }}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-600/90 text-white rounded-lg"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        <FaTrash />
-                        Sil
+                        <FaTrash /> Sil
                       </motion.button>
                     </td>
-                  </motion.tr>
+                  </tr>
                 ))}
               </tbody>
-            </motion.table>
+            </table>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-400 text-sm">Sonuç bulunamadı</p>
-            </div>
+            <p className="text-gray-400 text-center py-8">Sonuç bulunamadı</p>
           )}
         </div>
       </motion.div>
+
+      {/* Modal for AddFilm */}
+      <AnimatePresence>
+        {showAddModal && (
+          <motion.div
+            className="fixed inset-0 z-[999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleOutsideClick}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 50, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 50, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="relative max-h-[90vh] overflow-y-auto bg-gray-900 rounded-2xl p-6"
+            >
+              <motion.button
+                onClick={() => setShowAddModal(false)}
+                className="absolute top-2 right-2 text-white text-xl z-50 bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 flex items-center justify-center"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                ×
+              </motion.button>
+              <AddFilm />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

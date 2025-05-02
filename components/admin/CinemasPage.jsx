@@ -1,19 +1,20 @@
 'use client';
 
-import React from 'react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaEdit, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaChevronDown, FaChevronUp, FaPlus } from 'react-icons/fa';
+import AddCinema from './AddCinema';
 
 export default function CinemasPage() {
   const [cinemas, setCinemas] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [openCinemaId, setOpenCinemaId] = useState(null);
+  const [showAddCinema, setShowAddCinema] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -36,10 +37,8 @@ export default function CinemasPage() {
   const fetchCinemas = async () => {
     try {
       setLoading(true);
-      
       const cinemasQuery = collection(db, 'cinemas');
       const cinemasSnapshot = await getDocs(cinemasQuery);
-      
       const cinemasData = cinemasSnapshot.docs.map(doc => ({
         id: doc.id,
         name: doc.data().name,
@@ -47,7 +46,6 @@ export default function CinemasPage() {
         seats: doc.data().seats,
         halls: Array.isArray(doc.data().halls) ? doc.data().halls.sort() : ['Bilinmeyen Salon']
       }));
-
       setCinemas(cinemasData);
     } catch (error) {
       console.error('Veri çekme hatası:', error);
@@ -76,14 +74,11 @@ export default function CinemasPage() {
     try {
       const cinemaRef = doc(db, 'cinemas', cinemaId);
       const cinema = cinemas.find(c => c.id === cinemaId);
-      
       const updatedHalls = cinema.halls.filter(h => h !== hallNumber);
-      
       await updateDoc(cinemaRef, {
         halls: updatedHalls.length > 0 ? updatedHalls : ['Bilinmeyen Salon']
       });
-      
-      setCinemas(prev => 
+      setCinemas(prev =>
         prev.map(cinema => {
           if (cinema.id === cinemaId) {
             return {
@@ -94,7 +89,6 @@ export default function CinemasPage() {
           return cinema;
         })
       );
-      
       if (updatedHalls.length === 0 && hallNumber !== 'Bilinmeyen Salon') {
         setOpenCinemaId(null);
       }
@@ -116,6 +110,12 @@ export default function CinemasPage() {
     cinema.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleOutsideClick = (e) => {
+    if (e.target.className.includes('fixed inset-0')) {
+      setShowAddCinema(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 h-screen w-screen bg-black flex items-center justify-center">
@@ -132,8 +132,7 @@ export default function CinemasPage() {
   }
 
   return (
-    <div className="fixed inset-0 h-screen w-screen bg-black flex items-center justify-center p-4 overflow-hidden">
-      {/* Background Gradient */}
+    <div className="min-h-screen bg-black pt-20 pb-10 px-4"> {/* Changed from fixed to min-h-screen and added padding top */}
       <motion.div
         className="fixed inset-0 bg-gradient-to-b from-black via-purple-950 to-black z-0"
         initial={{
@@ -145,7 +144,6 @@ export default function CinemasPage() {
         transition={{ duration: 3, ease: 'easeInOut' }}
       />
 
-      {/* Moving Particles */}
       {[...Array(30)].map((_, i) => (
         <motion.div
           key={i}
@@ -172,31 +170,24 @@ export default function CinemasPage() {
         />
       ))}
 
-      {/* Nebula Glow */}
       <motion.div
-        className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-3xl pointer-events-none"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 0.4 }}
-        transition={{ duration: 2, ease: 'easeOut' }}
-      />
-      <motion.div
-        className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-full blur-3xl pointer-events-none"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 0.5 }}
-        transition={{ duration: 2.5, ease: 'easeOut' }}
-      />
-
-      <motion.div
-        className="relative z-10 bg-gray-900/80 backdrop-blur-lg p-6 rounded-2xl shadow-2xl w-full max-w-5xl mx-auto text-white border border-purple-500/20 flex flex-col overflow-hidden"
+        className="relative z-10 bg-gray-900/80 backdrop-blur-lg p-6 rounded-2xl shadow-2xl w-full max-w-5xl mx-auto text-white border border-purple-500/20 flex flex-col"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        {/* Header */}
-        <div className="flex justify-center items-center mb-6"> 
+        <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
             🎬 Sinema Salonu Yönetimi
           </h2>
+          <motion.button
+            onClick={() => setShowAddCinema(true)}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-5 py-2 rounded-lg flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <FaPlus /> Ekle
+          </motion.button>
         </div>
 
         <div className="mb-6 relative">
@@ -214,7 +205,7 @@ export default function CinemasPage() {
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
         </div>
 
-        <div className="overflow-hidden">
+        <div className="overflow-auto max-h-[60vh]">
           {filteredCinemas.length > 0 ? (
             <motion.table className="w-full bg-gray-800/30 rounded-lg overflow-hidden">
               <thead className="bg-gray-700 text-left text-gray-300 sticky top-0">
@@ -246,9 +237,9 @@ export default function CinemasPage() {
                           </motion.span>
                         </td>
                         <td className="px-6 py-4">
-                          <a 
-                            href={cinema.location} 
-                            target="_blank" 
+                          <a
+                            href={cinema.location}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-purple-300 hover:underline"
                             onClick={(e) => e.stopPropagation()}
@@ -282,7 +273,6 @@ export default function CinemasPage() {
                           </motion.button>
                         </td>
                       </motion.tr>
-                      
                       <AnimatePresence>
                         {openCinemaId === cinema.id && (
                           <motion.tr
@@ -351,6 +341,36 @@ export default function CinemasPage() {
           )}
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {showAddCinema && (
+          <motion.div
+            className="fixed inset-0 z-[999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleOutsideClick}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 50, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 50, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="relative max-h-[90vh] overflow-y-auto bg-gray-900 rounded-2xl p-6"
+            >
+              <motion.button
+                onClick={() => setShowAddCinema(false)}
+                className="absolute top-2 right-2 text-white text-xl z-50 bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 flex items-center justify-center"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                ×
+              </motion.button>
+              <AddCinema />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
