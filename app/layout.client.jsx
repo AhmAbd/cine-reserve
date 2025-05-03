@@ -92,7 +92,7 @@ export default function ClientLayout({ children }) {
                 whileTap={{ scale: 0.95 }}
               >
                 <Image
-                  src="/newest.jpg"
+                  src="/logo.png"
                   alt="CineReserve"
                   width={64}
                   height={64}
