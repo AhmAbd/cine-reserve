@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, getAuth } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -69,6 +69,41 @@ const Login = () => {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect') || '/';
+
+  useEffect(() => {
+    console.log('Login component mounted. Redirect URL:', decodeURIComponent(redirectUrl));
+    const auth = getAuth();
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      console.log('Auth state changed:', user ? user.uid : 'No user');
+      if (user) {
+        console.log('Checking user suspension for:', user.uid);
+        const userRef = doc(db, 'users', user.uid);
+        getDoc(userRef)
+          .then((userDoc) => {
+            if (userDoc.exists() && !userDoc.data().suspended) {
+              console.log('User is not suspended. Redirecting to:', decodeURIComponent(redirectUrl));
+              setIsRedirecting(true);
+              router.replace(decodeURIComponent(redirectUrl));
+            } else {
+              console.log('User is suspended or doc does not exist');
+              setError('Hesabınız askıya alınmış. Lütfen destek ile iletişime geçin.');
+              auth.signOut();
+            }
+          })
+          .catch((err) => {
+            console.error('Error fetching user doc:', err);
+            setError('Kullanıcı bilgileri alınamadı.');
+            auth.signOut();
+          });
+      }
+    });
+    return () => {
+      console.log('Cleaning up auth listener');
+      unsubscribe();
+    };
+  }, [router, redirectUrl]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -94,32 +129,20 @@ const Login = () => {
     setError('');
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const userRef = doc(db, 'users', userCredential.user.uid);
-      const userDoc = await getDoc(userRef);
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        if (userData.suspended) {
-          setError('Hesabınız askıya alınmış. Lütfen destek ile iletişime geçin.');
-          return;
-        }
-
-        setIsRedirecting(true);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        router.push('/');
-      } else {
-        setError('Kullanıcı bilgileri bulunamadı.');
-      }
+      console.log('Attempting login with email:', email);
+      await signInWithEmailAndPassword(auth, email, password);
+      console.log('Login successful');
+      // onAuthStateChanged will handle redirect
     } catch (err) {
+      console.error('Firebase login error:', err);
       setError('E-posta veya şifre hatalı!');
-      console.error('Firebase error:', err);
     }
   };
 
   const handleContinueWithoutLogin = () => {
+    console.log('Continuing without login. Redirecting to:', decodeURIComponent(redirectUrl));
     setIsRedirecting(true);
-    setTimeout(() => router.push('/'), 500);
+    router.replace(decodeURIComponent(redirectUrl));
   };
 
   return (

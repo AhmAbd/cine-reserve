@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { db } from '../../../lib/firebase';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { db, auth } from '../../../lib/firebase';
+import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from 'components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from 'components/ui/card';
@@ -37,30 +38,10 @@ const generateSeats = (totalSeats = 48) => {
 
 const SeatIcon = ({ state, seatId }) => {
   const colors = {
-    selected: {
-      backrest: '#8b5cf6',
-      cushion: '#7c3aed',
-      armrest: '#6d28d9',
-      text: 'white'
-    },
-    available: {
-      backrest: '#374151',
-      cushion: '#4b5563',
-      armrest: '#3f4a5a',
-      text: '#d1d5db'
-    },
-    locked: {
-      backrest: '#ef4444',
-      cushion: '#dc2626',
-      armrest: '#b91c1c',
-      text: '#fee2e2'
-    },
-    booked: {
-      backrest: '#5b21b6',
-      cushion: '#4c1d95',
-      armrest: '#3b1680',
-      text: '#e9d5ff'
-    }
+    selected: { backrest: '#8b5cf6', cushion: '#7c3aed', armrest: '#6d28d9', text: 'white' },
+    available: { backrest: '#374151', cushion: '#4b5563', armrest: '#3f4a5a', text: '#d1d5db' },
+    locked: { backrest: '#ef4444', cushion: '#dc2626', armrest: '#b91c1c', text: '#fee2e2' },
+    booked: { backrest: '#5b21b6', cushion: '#4c1d95', armrest: '#3b1680', text: '#e9d5ff' }
   };
 
   const current = colors[state] || colors.available;
@@ -103,45 +84,69 @@ export default function SeatSelection() {
   const bookingId = searchParams.get('booking');
   const fullCount = parseInt(searchParams.get('full') || '0');
   const studentCount = parseInt(searchParams.get('student') || '0');
+  const isGuest = searchParams.get('guest') === 'true';
   const ticketCount = fullCount + studentCount;
 
   const [seats, setSeats] = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [timeLeft, setTimeLeft] = useState(LOCK_TIMEOUT_MS / 1000);
+  const [guestInfo, setGuestInfo] = useState({ fullName: '', email: '', phoneNumber: '' });
+  const [user, setUser] = useState(null);
+  const [lockingSeats, setLockingSeats] = useState(false);
   const seatDocId = `${movieId}_${cinemaId}`;
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
     const fetchAndSubscribe = async () => {
-      const cinemaSnap = await getDoc(doc(db, 'cinemas', cinemaId));
-      const seatCount = cinemaSnap.exists() ? cinemaSnap.data().seats || 48 : 48;
-      const docRef = doc(db, 'cinema_seats', seatDocId);
+      try {
+        const cinemaSnap = await getDoc(doc(db, 'cinemas', cinemaId));
+        const seatCount = cinemaSnap.exists() ? cinemaSnap.data().seats || 48 : 48;
+        const docRef = doc(db, 'cinema_seats', seatDocId);
 
-      const unsubscribe = onSnapshot(docRef, (docSnap) => {
-        const occupiedMap = docSnap.exists() ? docSnap.data()?.seats || {} : {};
-        const newSeats = generateSeats(seatCount);
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+          console.log('Firestore snapshot received:', docSnap.exists() ? docSnap.data() : 'No data');
+          const occupiedMap = docSnap.exists() ? docSnap.data()?.seats || {} : {};
+          const newSeats = generateSeats(seatCount);
 
-        newSeats.forEach((row) => {
-          row.forEach((seat) => {
-            const value = occupiedMap[seat.id];
-            if (typeof value === 'string') {
-              if (value.startsWith('booked_')) {
-                seat.occupied = true;
-                seat.booked = true;
-                seat.justBooked = true;
-              } else if (value.startsWith('locked_')) {
-                seat.occupied = true;
-                seat.booked = false;
+          newSeats.forEach((row) => {
+            row.forEach((seat) => {
+              const value = occupiedMap[seat.id];
+              if (typeof value === 'string') {
+                if (value.startsWith('booked_')) {
+                  seat.occupied = true;
+                  seat.booked = true;
+                  seat.justBooked = true;
+                } else if (value.startsWith('locked_')) {
+                  seat.occupied = true;
+                  seat.booked = false;
+                }
               }
-            }
+            });
           });
+
+          console.log('Updated seats state:', newSeats);
+          setSeats(newSeats);
+          setLoading(false);
+        }, (err) => {
+          console.error('Snapshot error:', err);
+          setError('Koltuk bilgileri yüklenirken bir hata oluştu: ' + err.message);
+          setLoading(false);
         });
 
-        setSeats(newSeats);
+        return unsubscribe;
+      } catch (err) {
+        console.error('Fetch error:', err);
+        setError('Koltuk bilgileri yüklenirken bir hata oluştu: ' + err.message);
         setLoading(false);
-      });
-
-      return unsubscribe;
+      }
     };
 
     fetchAndSubscribe();
@@ -151,7 +156,7 @@ export default function SeatSelection() {
     if (loading) return;
     if (timeLeft <= 0) {
       alert('Süre doldu! Lütfen koltuk seçimini yeniden yapın.');
-      router.replace(`/tickets/select-seat?movie=${movieId}&cinema=${cinemaId}&booking=${bookingId}&full=${fullCount}&student=${studentCount}`);
+      router.replace(`/tickets/select-seat?movie=${movieId}&cinema=${cinemaId}&booking=${bookingId}&full=${fullCount}&student=${studentCount}&guest=${isGuest}`);
       return;
     }
 
@@ -160,40 +165,51 @@ export default function SeatSelection() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, loading, router, movieId, cinemaId, bookingId, fullCount, studentCount]);
+  }, [timeLeft, loading, router, movieId, cinemaId, bookingId, fullCount, studentCount, isGuest]);
 
   useEffect(() => {
-    const unlockSeats = async () => {
+    const cleanupSeats = async () => {
       if (selectedSeats.length > 0) {
-        const seatRef = doc(db, 'cinema_seats', seatDocId);
-        const seatSnap = await getDoc(seatRef);
-        const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
+        try {
+          const seatRef = doc(db, 'cinema_seats', seatDocId);
+          const seatSnap = await getDoc(seatRef);
+          const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
 
-        const updatedSeats = { ...seatData.seats };
-        selectedSeats.forEach((seatId) => {
-          updatedSeats[seatId] = 'available';
-        });
+          const updatedSeats = { ...seatData.seats };
+          selectedSeats.forEach((seatId) => {
+            if (updatedSeats[seatId]?.startsWith(`locked_${bookingId}`)) {
+              updatedSeats[seatId] = 'available';
+            }
+          });
 
-        await setDoc(seatRef, { seats: updatedSeats }, { merge: true });
+          await setDoc(seatRef, { seats: updatedSeats }, { merge: true });
+          console.log('Seats cleaned up:', selectedSeats);
+        } catch (err) {
+          console.error('Cleanup seats error:', err);
+        }
       }
     };
 
-    window.addEventListener('beforeunload', unlockSeats);
+    window.addEventListener('beforeunload', cleanupSeats);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') unlockSeats();
+      if (document.visibilityState === 'hidden') cleanupSeats();
     });
 
+    const timeout = setTimeout(cleanupSeats, LOCK_TIMEOUT_MS);
+
     return () => {
-      window.removeEventListener('beforeunload', unlockSeats);
-      document.removeEventListener('visibilitychange', unlockSeats);
+      window.removeEventListener('beforeunload', cleanupSeats);
+      document.removeEventListener('visibilitychange', cleanupSeats);
+      clearTimeout(timeout);
     };
-  }, [selectedSeats, seatDocId]);
+  }, [selectedSeats, seatDocId, bookingId]);
 
   const handleSelect = (rowIndex, seatIndex) => {
     const seatId = seats[rowIndex][seatIndex].id;
+    console.log('Seat selected:', seatId, 'Current state:', seats[rowIndex][seatIndex]);
 
     if (selectedSeats.length >= ticketCount && !selectedSeats.includes(seatId)) {
-      alert(`You can select maximum ${ticketCount} seat${ticketCount > 1 ? 's' : ''}`);
+      alert(`En fazla ${ticketCount} koltuk seçebilirsiniz.`);
       return;
     }
 
@@ -210,20 +226,109 @@ export default function SeatSelection() {
       return;
     }
 
-    const seatRef = doc(db, 'cinema_seats', seatDocId);
-    const seatSnap = await getDoc(seatRef);
-    const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
+    if (isGuest && (!guestInfo.fullName || !guestInfo.email || !guestInfo.phoneNumber)) {
+      alert('Lütfen misafir bilgilerini doldurun.');
+      return;
+    }
 
-    const updatedSeats = { ...seatData.seats };
-    selectedSeats.forEach((seatId) => {
-      updatedSeats[seatId] = `locked_${bookingId}`;
-    });
+    try {
+      setLockingSeats(true);
+      const seatRef = doc(db, 'cinema_seats', seatDocId);
+      const seatSnap = await getDoc(seatRef);
+      const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
+      console.log('Firestore seat data before locking:', seatData);
 
-    await setDoc(seatRef, { seats: updatedSeats }, { merge: true });
+      // Validate that selected seats are still available
+      const invalidSeats = selectedSeats.filter((seatId) => {
+        const status = seatData.seats[seatId];
+        return status && (status.startsWith('booked_') || status.startsWith('locked_'));
+      });
 
-    router.push(
-      `/tickets/payment?movie=${movieId}&cinema=${cinemaId}&booking=${bookingId}&seats=${selectedSeats.join(',')}&full=${fullCount}&student=${studentCount}`
-    );
+      if (invalidSeats.length > 0) {
+        alert('Seçtiğiniz bazı koltuklar artık mevcut değil. Lütfen yeniden seçim yapın.');
+        setSelectedSeats([]);
+        setLockingSeats(false);
+        return;
+      }
+
+      const updatedSeats = { ...seatData.seats };
+      selectedSeats.forEach((seatId) => {
+        updatedSeats[seatId] = `locked_${bookingId}`;
+      });
+
+      await setDoc(seatRef, { seats: updatedSeats, lockTimestamp: serverTimestamp() }, { merge: true });
+      console.log('Seats locked in Firestore:', selectedSeats);
+
+      // Update local seats state to reflect locked status
+      setSeats((prevSeats) =>
+        prevSeats.map((row) =>
+          row.map((seat) => {
+            if (selectedSeats.includes(seat.id)) {
+              return { ...seat, occupied: true, booked: false };
+            }
+            return seat;
+          })
+        )
+      );
+      setLockingSeats(false);
+
+      // Films koleksiyonundan seans bilgisini al
+      const filmRef = doc(db, 'films', movieId);
+      const filmSnap = await getDoc(filmRef);
+      let sessionInfo = 'Seans Bilinmiyor';
+      let filmData = {};
+
+      if (filmSnap.exists()) {
+        filmData = filmSnap.data();
+        // Örnek: sessions alanı bir dizi ve cinemaId ile eşleşen seansı buluyoruz
+        const sessions = filmData.sessions || [];
+        const matchingSession = sessions.find(
+          (session) => session.cinemaId === cinemaId && session.hallNumber === searchParams.get('hall')
+        );
+
+        if (matchingSession) {
+          sessionInfo = `${matchingSession.hallNumber} - ${new Date(matchingSession.showtime).toLocaleString()}`;
+        }
+      }
+
+      const ticketId = `TICK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const ticketData = {
+        cinemaId,
+        cinemaName: (await getDoc(doc(db, 'cinemas', cinemaId))).data()?.name || 'Sinema Adı Bilinmiyor',
+        fullCount,
+        movieId,
+        movieName: filmData?.title || 'Film Adı Bilinmiyor',
+        session: sessionInfo, // Güncellenmiş seans bilgisi
+        studentCount,
+        seats: selectedSeats,
+        timestamp: serverTimestamp(),
+        totalPrice: fullCount * 195 + studentCount * 150,
+        status: 'pending',
+        bookingId,
+      };
+
+      if (isGuest) {
+        await setDoc(doc(db, 'guestTickets', ticketId), {
+          ...ticketData,
+          guestInfo: {
+            fullName: guestInfo.fullName,
+            email: guestInfo.email,
+            phoneNumber: guestInfo.phoneNumber,
+          },
+        });
+      } else {
+        await setDoc(doc(db, 'tickets', ticketId), {
+          ...ticketData,
+          userId: user?.uid || null,
+        });
+      }
+
+      router.push(`/tickets/payment?ticketId=${ticketId}&full=${fullCount}&student=${studentCount}&bookingId=${bookingId}`);
+    } catch (err) {
+      console.error('Seat selection error:', err);
+      setError('Koltuk seçimi sırasında bir hata oluştu: ' + err.message);
+      setLockingSeats(false);
+    }
   };
 
   const formatTime = (seconds) => {
@@ -232,9 +337,26 @@ export default function SeatSelection() {
     return `${m}:${s}`;
   };
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0d0d1a] text-white flex justify-center items-center">
+        <div className="text-center space-y-4">
+          <p className="text-red-400">{error}</p>
+          <motion.button
+            onClick={() => router.push('/')}
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-full font-semibold"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Ana Sayfaya Dön
+          </motion.button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0d0d1a] text-white px-4 sm:px-6 py-12 overflow-hidden">
-      {/* 3D Parallax Background */}
       <div className="fixed inset-0 z-[-2]">
         <motion.div
           className="absolute inset-0 bg-gradient-to-br from-[#0d0d1a] to-[#1a1a2e] opacity-80"
@@ -249,7 +371,6 @@ export default function SeatSelection() {
       </div>
 
       <div className="relative z-10 max-w-5xl mx-auto">
-        {/* Header with Tilt */}
         <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} glareEnable={true} glareMaxOpacity={0.3} glareColor="#a020f0">
           <motion.div
             className="text-center mb-12 bg-gradient-to-r from-gray-900/50 to-gray-800/50 backdrop-blur-xl p-6 rounded-2xl border border-purple-500/30 shadow-2xl"
@@ -287,7 +408,6 @@ export default function SeatSelection() {
           </motion.div>
         </Tilt>
 
-        {/* Screen */}
         <motion.div
           className="relative w-full h-16 bg-gradient-to-b from-gray-200 to-gray-400 rounded-b-xl shadow-inner flex items-center justify-center mb-8"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -308,8 +428,7 @@ export default function SeatSelection() {
           </div>
         ) : (
           <TooltipProvider>
-            <>
-              {/* Seat Grid */}
+            <div>
               <div className="flex flex-col items-center gap-3">
                 {seats.map((row, rowIndex) => (
                   <div key={rowIndex} className="flex gap-2">
@@ -342,11 +461,7 @@ export default function SeatSelection() {
                               className="relative"
                               whileHover={!isDisabled ? { scale: 1.1 } : {}}
                               whileTap={!isDisabled ? { scale: 0.95 } : {}}
-                              animate={
-                                seat.justBooked
-                                  ? { scale: [1, 1.2, 1], opacity: [0.7, 1] }
-                                  : {}
-                              }
+                              animate={seat.justBooked ? { scale: [1, 1.2, 1], opacity: [0.7, 1] } : {}}
                               transition={{ duration: 0.3 }}
                             >
                               <SeatIcon state={seatState} seatId={seat.id} />
@@ -362,13 +477,7 @@ export default function SeatSelection() {
                 ))}
               </div>
 
-              {/* Legend */}
-              <motion.div 
-                className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
+              <motion.div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
                 {[
                   { state: 'selected', color: 'bg-purple-500', label: 'Seçilen' },
                   { state: 'available', color: 'bg-gray-500', label: 'Boş' },
@@ -382,16 +491,9 @@ export default function SeatSelection() {
                 ))}
               </motion.div>
 
-              {/* Summary Card */}
               <AnimatePresence>
                 {selectedSeats.length > 0 && (
-                  <motion.div
-                    className="mt-8"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    transition={{ duration: 0.3 }}
-                  >
+                  <motion.div className="mt-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} transition={{ duration: 0.3 }}>
                     <Card className="bg-gradient-to-br from-gray-900/70 to-gray-800/70 border-gray-700 shadow-xl">
                       <CardHeader>
                         <CardTitle className="text-xl bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
@@ -402,9 +504,7 @@ export default function SeatSelection() {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1">
                             <p className="text-sm text-gray-400">Koltuklar</p>
-                            <p className="font-medium">
-                              {selectedSeats.join(', ')}
-                            </p>
+                            <p className="font-medium">{selectedSeats.join(', ')}</p>
                           </div>
                           <div className="space-y-1">
                             <p className="text-sm text-gray-400">Tam Bilet</p>
@@ -419,6 +519,31 @@ export default function SeatSelection() {
                             <p className="font-medium">{ticketCount} koltuk</p>
                           </div>
                         </div>
+                        {(!user || isGuest) && (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              placeholder="Ad Soyad"
+                              value={guestInfo.fullName}
+                              onChange={(e) => setGuestInfo({ ...guestInfo, fullName: e.target.value })}
+                              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                            <input
+                              type="email"
+                              placeholder="E-posta"
+                              value={guestInfo.email}
+                              onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
+                              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                            <input
+                              type="phoneNumber"
+                              placeholder="Telefon Numarası"
+                              value={guestInfo.phoneNumber}
+                              onChange={(e) => setGuestInfo({ ...guestInfo, phoneNumber: e.target.value })}
+                              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                          </div>
+                        )}
                         <Button
                           className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-6 text-base font-bold shadow-lg hover:shadow-purple-500/40 mt-4"
                           onClick={handleContinue}
@@ -430,7 +555,7 @@ export default function SeatSelection() {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </>
+            </div>
           </TooltipProvider>
         )}
       </div>
