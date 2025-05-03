@@ -19,7 +19,6 @@ const AdminHeader = () => {
     { href: "/admin/users", label: "Kullanıcılar" },
     { href: "/admin/movies", label: "Filmler" },
     { href: "/admin/cinemas", label: "Sinemalar" },
-    { href: "/admin/manage", label: "Film veya Sinema Ekle" },
     { href: "/admin/messages", label: "Mesajlar" },
   ];
 
