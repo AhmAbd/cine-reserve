@@ -690,7 +690,6 @@ export default function MovieDetailPage() {
                           hour: '2-digit',
                           minute: '2-digit',
                         });
-                        const showtimeString = showtime.toISOString().split('.')[0];
 
                         return (
                           <motion.div
@@ -706,19 +705,22 @@ export default function MovieDetailPage() {
                                   {cinema.hallName}
                                 </p>
                               </div>
-                              <Link
-                                href={`/tickets/select-type?movie=${movie.id}&cinema=${cinema.id}&hall=${encodeURIComponent(`${showtimeString}|${cinema.hallName}`)}`}
-                                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-purple-500/20 flex items-center justify-center gap-2"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-5 w-5"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
+                              <Link href={`/tickets?movie=${movie.id}`}>
+                                <motion.button
+                                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-lg font-semibold uppercase tracking-wide flex items-center gap-3 shadow-lg text-lg hover:shadow-purple-500/30 transition-all duration-300"
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
                                 >
-                                  <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 100 4v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2a2 2 0 100-4V6z" />
-                                </svg>
-                                Bilet Al
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-6 w-6"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                  >
+                                    <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 100 4v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2a2 2 0 100-4V6z" />
+                                  </svg>
+                                  Hemen Bilet Al
+                                </motion.button>
                               </Link>
                             </div>
                           </motion.div>
