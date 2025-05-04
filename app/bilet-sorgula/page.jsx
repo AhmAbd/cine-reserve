@@ -174,12 +174,23 @@ const TicketSearchPage = () => {
             }
           }
 
+          // Determine ticket class
+          let ticketClass = '—';
+          if (ticket.fullCount > 0 && ticket.studentCount > 0) {
+            ticketClass = 'Tam ve Öğrenci';
+          } else if (ticket.fullCount > 0) {
+            ticketClass = 'Tam';
+          } else if (ticket.studentCount > 0) {
+            ticketClass = 'Öğrenci';
+          }
+
           return {
             ...ticket,
             movieName: movieTitle,
             hallDisplay: hallInfo,
             sessionDisplay,
-            cinemaLocation
+            cinemaLocation,
+            ticketClass // Yeni eklenen bilet türü bilgisi
           };
         })
       );
@@ -425,6 +436,9 @@ const TicketSearchPage = () => {
                           </div>
                           <div>
                             <span className="font-medium text-gray-900">Fiyat:</span> {ticket.totalPrice != null ? `${ticket.totalPrice} ₺` : '—'}
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900">Bilet Sınıfı:</span> {ticket.ticketClass}
                           </div>
                           <div>
                             <span className="font-medium text-gray-900">Bilet ID:</span> {ticket.id}
