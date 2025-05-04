@@ -30,6 +30,7 @@ export default function SelectTicketType() {
   const movieId = searchParams.get('movie');
   const cinemaId = searchParams.get('cinema');
   const hall = searchParams.get('hall');
+  const showtime = searchParams.get('showtime');
 
   const { user, loading } = useAuthStatus();
   const [counts, setCounts] = useState({ full: 1, student: 0 });
@@ -40,22 +41,14 @@ export default function SelectTicketType() {
   const [movieName, setMovieName] = useState('');
   const [cinemaName, setCinemaName] = useState('');
   const [sessionTime, setSessionTime] = useState('');
+  const [hallNumber, setHallNumber] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Log query parameters for debugging
-  useEffect(() => {
-    console.log('Query Parameters:', {
-      movieId,
-      cinemaId,
-      hall,
-    });
-  }, [movieId, cinemaId, hall]);
-
   // Validate query parameters
-  if (!movieId || !cinemaId || !hall) {
+  if (!movieId || !cinemaId || !hall || !showtime) {
     return (
       <div className="min-h-screen bg-[#1f1f1f] text-white flex justify-center items-center">
-        <p>Hata: Film, sinema veya salon bilgisi eksik. Lütfen bilgileri kontrol edin.</p>
+        <p>Hata: Film, sinema, salon veya seans bilgisi eksik. Lütfen bilgileri kontrol edin.</p>
       </div>
     );
   }
@@ -90,36 +83,18 @@ export default function SelectTicketType() {
           setFetchError('Sinema bilgileri bulunamadı.');
         }
 
-        // Validate and parse session time
-        if (hall) {
-          // Expect hall format: '2025-05-04T14:30:00|Salon1'
-          const [timestamp, hallName] = hall.split('|');
-          if (timestamp && hallName) {
-            try {
-              const date = new Date(timestamp);
-              if (!isNaN(date.getTime())) {
-                setSessionTime(hall);
-                console.log('Session Time Set:', hall);
-              } else {
-                throw new Error('Geçersiz seans zamanı formatı');
-              }
-            } catch (error) {
-              console.error('Session time parsing error:', error);
-              setFetchError('Seans zamanı geçersiz. Lütfen seçimi tekrar yapın.');
-            }
-          } else {
-            setFetchError('Seans bilgisi eksik veya yanlış formatta.');
-          }
-        } else {
-          setFetchError('Seans bilgisi eksik.');
-        }
+        // Set session time from showtime parameter
+        setSessionTime(decodeURIComponent(showtime) || 'Seans Bilinmiyor');
+
+        // Set hall number from hall parameter
+        setHallNumber(decodeURIComponent(hall) || 'Salon Bilinmiyor');
       } catch (error) {
         console.error('Error fetching data:', error);
-        setFetchError('Veri yüklenirken hata oluştu: ' + error.message);
+        setFetchError('Veri yüklenirken hata oluştu. Lütfen daha sonra tekrar deneyin.');
       }
     };
     fetchData();
-  }, [movieId, cinemaId, hall]);
+  }, [movieId, cinemaId, hall, showtime]);
 
   const total = counts.full * prices.full + counts.student * prices.student;
   const isPriceLoaded = prices.full !== 0 && prices.student !== 0;
@@ -130,7 +105,7 @@ export default function SelectTicketType() {
 
   const handleLogin = () => {
     const redirectUrl = encodeURIComponent(
-      `/tickets/select-type?movie=${movieId}&cinema=${cinemaId}&hall=${encodeURIComponent(hall)}`
+      `/tickets/select-type?movie=${movieId}&cinema=${cinemaId}&hall=${encodeURIComponent(hall)}&showtime=${encodeURIComponent(showtime)}`
     );
     router.push(`/login?redirect=${redirectUrl}`);
   };
@@ -141,16 +116,14 @@ export default function SelectTicketType() {
     setShowAuthDialog(false);
 
     try {
-      if (!sessionTime) {
-        throw new Error('Seans bilgisi eksik');
-      }
       const bookingRef = await addDoc(collection(db, 'guestTickets'), {
         cinemaId,
         cinemaName: cinemaName || 'Sinema Adı Bilinmiyor',
         fullCount: counts.full,
         movieId,
         movieName: movieName || 'Film Adı Bilinmiyor',
-        session: sessionTime,
+        session: sessionTime || 'Seans Bilinmiyor',
+        hall: hallNumber || 'Salon Bilinmiyor',
         studentCount: counts.student,
         timestamp: serverTimestamp(),
         totalPrice: total,
@@ -159,7 +132,7 @@ export default function SelectTicketType() {
       const bookingId = bookingRef.id;
       console.log('Select-Type: Guest bookingId generated:', bookingId);
 
-      const selectSeatUrl = `/tickets/select-seat?movie=${encodeURIComponent(movieId)}&cinema=${encodeURIComponent(cinemaId)}&booking=${encodeURIComponent(bookingId)}&full=${counts.full}&student=${counts.student}&session=${encodeURIComponent(sessionTime)}&guest=true`;
+      const selectSeatUrl = `/tickets/select-seat?movie=${encodeURIComponent(movieId)}&cinema=${encodeURIComponent(cinemaId)}&booking=${encodeURIComponent(bookingId)}&full=${counts.full}&student=${counts.student}&session=${encodeURIComponent(sessionTime)}&hall=${encodeURIComponent(hallNumber)}&guest=true`;
       console.log('Select-Type: Navigating to:', selectSeatUrl);
       router.push(selectSeatUrl);
     } catch (error) {
@@ -177,7 +150,8 @@ export default function SelectTicketType() {
         fullCount: counts.full,
         movieId,
         movieName: movieName || 'Film Adı Bilinmiyor',
-        session: sessionTime,
+        session: sessionTime || 'Seans Bilinmiyor',
+        hall: hallNumber || 'Salon Bilinmiyor',
         studentCount: counts.student,
         timestamp: serverTimestamp(),
         totalPrice: total,
@@ -204,6 +178,9 @@ export default function SelectTicketType() {
       if (!sessionTime) {
         throw new Error('Seans bilgisi eksik');
       }
+      if (!hallNumber) {
+        throw new Error('Salon bilgisi eksik');
+      }
 
       if (!user && !loading) {
         setShowAuthDialog(true);
@@ -214,7 +191,7 @@ export default function SelectTicketType() {
       if (user) {
         const ticketId = doc(collection(db, 'tickets')).id;
         await saveUserTicket(ticketId);
-        const selectSeatUrl = `/tickets/select-seat?movie=${encodeURIComponent(movieId)}&cinema=${encodeURIComponent(cinemaId)}&booking=${encodeURIComponent(ticketId)}&full=${counts.full}&student=${counts.student}&session=${encodeURIComponent(sessionTime)}&guest=false`;
+        const selectSeatUrl = `/tickets/select-seat?movie=${encodeURIComponent(movieId)}&cinema=${encodeURIComponent(cinemaId)}&booking=${encodeURIComponent(ticketId)}&full=${counts.full}&student=${counts.student}&session=${encodeURIComponent(sessionTime)}&hall=${encodeURIComponent(hallNumber)}&guest=false`;
         console.log('Select-Type: User bookingId generated:', ticketId);
         console.log('Select-Type: Navigating to:', selectSeatUrl);
         router.push(selectSeatUrl);
@@ -401,4 +378,4 @@ export default function SelectTicketType() {
       </motion.div>
     </div>
   );
-} 
+}
