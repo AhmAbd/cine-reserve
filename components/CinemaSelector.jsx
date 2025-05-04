@@ -75,6 +75,12 @@ export default function CinemaSelector() {
     router.push(`/tickets/select-type?movie=${movieId}&cinema=${cinemaId}${hallId ? `&hall=${hallId}` : ''}`);
   };
 
+  const openGoogleMaps = (e, mapLink, name, location) => {
+    e.stopPropagation();
+    const url = mapLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + location)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0d0d1a] to-[#1a1a2e] flex items-center justify-center">
@@ -276,25 +282,29 @@ export default function CinemaSelector() {
                         minute: '2-digit',
                       })}
                     </div>
-                    <div className="text-sm text-gray-200 mt-2">
-                      Yer: {cinema.location}
-                    </div>
                     {cinema.hallDisplay && (
                       <div className="text-sm text-gray-200 mt-2">
                         Salon: {cinema.hallDisplay}
                       </div>
                     )}
-                    {cinema.mapLink && (
-                      <a
-                        href={cinema.mapLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-purple-300 hover:text-purple-100 underline mt-3 inline-block transition-colors duration-300"
-                        onClick={(e) => e.stopPropagation()}
+                    <button
+                      onClick={(e) => openGoogleMaps(e, cinema.mapLink, cinema.name, cinema.location)}
+                      className="mt-4 w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
                       >
-                        Haritada Göster
-                      </a>
-                    )}
+                        <path
+                          fillRule="evenodd"
+                          d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Haritada Göster
+                    </button>
                   </div>
                 </motion.button>
               ))}
