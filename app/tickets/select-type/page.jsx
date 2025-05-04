@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { db } from '../../../lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore'; // Added addDoc
+import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { Minus, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,7 +40,16 @@ export default function SelectTicketType() {
   const [movieName, setMovieName] = useState('');
   const [cinemaName, setCinemaName] = useState('');
   const [sessionTime, setSessionTime] = useState('');
-  const [isSaving, setIsSaving] = useState(false); // Prevent multiple saves
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Log query parameters for debugging
+  useEffect(() => {
+    console.log('Query Parameters:', {
+      movieId,
+      cinemaId,
+      hall,
+    });
+  }, [movieId, cinemaId, hall]);
 
   // Validate query parameters
   if (!movieId || !cinemaId || !hall) {
@@ -81,12 +90,32 @@ export default function SelectTicketType() {
           setFetchError('Sinema bilgileri bulunamadı.');
         }
 
-        // Parse session time from hall parameter
-        // Changed: Use full hall string as sessionTime
-        setSessionTime(hall); // e.g., '2025-05-04T14:30:00|Salon1'
+        // Validate and parse session time
+        if (hall) {
+          // Expect hall format: '2025-05-04T14:30:00|Salon1'
+          const [timestamp, hallName] = hall.split('|');
+          if (timestamp && hallName) {
+            try {
+              const date = new Date(timestamp);
+              if (!isNaN(date.getTime())) {
+                setSessionTime(hall);
+                console.log('Session Time Set:', hall);
+              } else {
+                throw new Error('Geçersiz seans zamanı formatı');
+              }
+            } catch (error) {
+              console.error('Session time parsing error:', error);
+              setFetchError('Seans zamanı geçersiz. Lütfen seçimi tekrar yapın.');
+            }
+          } else {
+            setFetchError('Seans bilgisi eksik veya yanlış formatta.');
+          }
+        } else {
+          setFetchError('Seans bilgisi eksik.');
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
-        setFetchError('Veri yüklenirken hata oluştu. Lütfen daha sonra tekrar deneyin.');
+        setFetchError('Veri yüklenirken hata oluştu: ' + error.message);
       }
     };
     fetchData();
@@ -107,19 +136,21 @@ export default function SelectTicketType() {
   };
 
   const handleContinueAsGuest = async () => {
-    if (isSaving) return; // Prevent multiple clicks
+    if (isSaving) return;
     setIsSaving(true);
     setShowAuthDialog(false);
 
     try {
-      // Changed: Generate bookingId in Firestore guestTickets
+      if (!sessionTime) {
+        throw new Error('Seans bilgisi eksik');
+      }
       const bookingRef = await addDoc(collection(db, 'guestTickets'), {
         cinemaId,
         cinemaName: cinemaName || 'Sinema Adı Bilinmiyor',
         fullCount: counts.full,
         movieId,
         movieName: movieName || 'Film Adı Bilinmiyor',
-        session: sessionTime || 'Seans Bilinmiyor',
+        session: sessionTime,
         studentCount: counts.student,
         timestamp: serverTimestamp(),
         totalPrice: total,
@@ -146,7 +177,7 @@ export default function SelectTicketType() {
         fullCount: counts.full,
         movieId,
         movieName: movieName || 'Film Adı Bilinmiyor',
-        session: sessionTime || 'Seans Bilinmiyor',
+        session: sessionTime,
         studentCount: counts.student,
         timestamp: serverTimestamp(),
         totalPrice: total,
@@ -163,14 +194,13 @@ export default function SelectTicketType() {
   };
 
   const handleContinue = async () => {
-    if (isSaving) return; // Prevent multiple clicks
+    if (isSaving) return;
     setIsSaving(true);
 
     try {
       if (counts.full + counts.student <= 0) {
         throw new Error('En az 1 bilet seçmelisiniz');
       }
-      // Added: Validate sessionTime
       if (!sessionTime) {
         throw new Error('Seans bilgisi eksik');
       }
@@ -182,9 +212,8 @@ export default function SelectTicketType() {
       }
 
       if (user) {
-        const ticketId = doc(collection(db, 'tickets')).id; // Use Firestore auto-generated ID
+        const ticketId = doc(collection(db, 'tickets')).id;
         await saveUserTicket(ticketId);
-        // Changed: Standardized URL with logging
         const selectSeatUrl = `/tickets/select-seat?movie=${encodeURIComponent(movieId)}&cinema=${encodeURIComponent(cinemaId)}&booking=${encodeURIComponent(ticketId)}&full=${counts.full}&student=${counts.student}&session=${encodeURIComponent(sessionTime)}&guest=false`;
         console.log('Select-Type: User bookingId generated:', ticketId);
         console.log('Select-Type: Navigating to:', selectSeatUrl);
@@ -372,4 +401,4 @@ export default function SelectTicketType() {
       </motion.div>
     </div>
   );
-}
+} 

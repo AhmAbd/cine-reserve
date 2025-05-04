@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { db } from '../../../lib/firebase';
-import { collection, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, query, where, orderBy, limit, setDoc } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -29,6 +30,7 @@ export default function MovieDetailPage() {
   const [movie, setMovie] = useState(null);
   const [cinemaData, setCinemaData] = useState([]);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeDate, setActiveDate] = useState(null);
   const [director, setDirector] = useState('');
@@ -36,9 +38,72 @@ export default function MovieDetailPage() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState(null);
 
+  // Initialize Firebase Auth and monitor state
+  useEffect(() => {
+    console.log('Initializing Firebase Auth');
+    let auth;
+    try {
+      auth = getAuth();
+      console.log('Firebase Auth initialized successfully');
+    } catch (err) {
+      console.error('Failed to initialize Firebase Auth:', err);
+      setError('Firebase Auth başlatılamadı: ' + err.message);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (currentUser) => {
+        console.log('Auth state changed:', currentUser ? { uid: currentUser.uid, email: currentUser.email } : 'No user');
+        setUser(currentUser);
+      },
+      (error) => {
+        console.error('Auth state error:', error);
+        setError('Kimlik doğrulama hatası: ' + error.message);
+      }
+    );
+
+    return () => {
+      console.log('Cleaning up auth listener');
+      unsubscribe();
+    };
+  }, []);
+
+  // Initialize user document
+  useEffect(() => {
+    const initializeUserDocument = async () => {
+      if (!user) {
+        console.log('No user, skipping user document initialization');
+        return;
+      }
+      try {
+        console.log('Checking user document for:', user.uid);
+        const userRef = doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+          console.log('Creating user document for:', user.uid);
+          await setDoc(userRef, {
+            email: user.email || '',
+            favorites: [],
+            createdAt: new Date(),
+          });
+          console.log('User document created successfully');
+        } else {
+          console.log('User document already exists:', user.uid);
+        }
+      } catch (err) {
+        console.error('Error initializing user document:', err);
+        setError('Kullanıcı verisi oluşturulamadı: ' + err.message);
+      }
+    };
+    initializeUserDocument();
+  }, [user]);
+
+  // Fetch movie data
   useEffect(() => {
     const fetchMovie = async () => {
       try {
+        console.log('Fetching movie for slug:', slug);
         setLoading(true);
         setError(null);
         setLoadingProgress(20);
@@ -56,6 +121,7 @@ export default function MovieDetailPage() {
 
         const filmDoc = filmSnap.docs[0];
         const filmData = { id: filmDoc.id, ...filmDoc.data() };
+        console.log('Movie fetched:', filmData.title);
         setDirector(filmData.director || 'Bilinmiyor');
         setLanguage(filmData.language || 'Türkçe');
         setMovie(filmData);
@@ -95,6 +161,7 @@ export default function MovieDetailPage() {
               });
               filmData.cinemas = validCinemas;
               setMovie({ ...filmData });
+              console.log('Removed past cinema sessions');
             } catch (err) {
               console.error('Error updating Firebase:', err);
               setError('Geçmiş seanslar temizlenirken bir hata oluştu.');
@@ -124,6 +191,7 @@ export default function MovieDetailPage() {
           );
 
           setCinemaData(cinemas.filter((cinema) => cinema !== null));
+          console.log('Cinema data set:', cinemas.length, 'cinemas');
         }
         setLoadingProgress(100);
         setTimeout(() => setLoading(false), 500);
@@ -137,44 +205,69 @@ export default function MovieDetailPage() {
     if (slug) fetchMovie();
   }, [slug]);
 
+  // Check favorites
   useEffect(() => {
-    // Favori durumu yalnızca giriş yapmış kullanıcılar için kontrol edilecek
     const checkFavorites = async () => {
-      if (!localStorage.getItem('user')) return; // Basit bir kontrol, gerçek uygulamada auth kontrolü yapılmalı
+      if (!user || !movie) {
+        console.log('Skipping favorites check: No user or movie');
+        return;
+      }
       try {
-        const user = JSON.parse(localStorage.getItem('user')); // Örnek, gerçekte auth'dan alınmalı
+        console.log('Checking favorites for user:', user.uid, 'slug:', slug);
         const userRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
-          const favorites = userSnap.data()?.favorites || [];
-          setIsFavorite(favorites.includes(slug));
+          const favorites = userSnap.data().favorites || [];
+          const isFav = favorites.includes(slug);
+          console.log('Favorites:', favorites, 'Is favorite:', isFav);
+          setIsFavorite(isFav);
+        } else {
+          console.warn('User document missing:', user.uid);
+          setIsFavorite(false);
         }
       } catch (err) {
         console.error('Error checking favorites:', err);
+        setError('Favori durumu kontrol edilirken hata oluştu: ' + err.message);
       }
     };
+    checkFavorites();
+  }, [user, movie, slug]);
 
-    if (movie) checkFavorites();
-  }, [movie, slug]);
-
+  // Toggle favorite
   const toggleFavorite = async () => {
-    // Favori ekleme/kaldırma yalnızca giriş yapmış kullanıcılar için aktif
-    const user = JSON.parse(localStorage.getItem('user')); // Örnek, gerçekte auth'dan alınmalı
+    console.log('Favorites button clicked, user:', user ? user.uid : 'No user', 'slug:', slug);
     if (!user) {
       setError('Bu işlem için giriş yapmalısınız.');
+      console.log('Toggle favorite failed: No user logged in');
       return;
     }
     try {
+      console.log('Toggling favorite, current isFavorite:', isFavorite);
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
         favorites: isFavorite ? arrayRemove(slug) : arrayUnion(slug),
       });
-      setIsFavorite(!isFavorite);
+      console.log('Firestore update successful');
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const favorites = userSnap.data().favorites || [];
+        const isFav = favorites.includes(slug);
+        console.log('Updated favorites:', favorites, 'New isFavorite:', isFav);
+        setIsFavorite(isFav);
+      } else {
+        console.warn('User document missing after update:', user.uid);
+        setIsFavorite(false);
+      }
     } catch (err) {
       console.error('Error toggling favorite:', err);
-      setError('Favorilere ekleme/kaldırma işlemi başarısız.');
+      setError('Favorilere ekleme/kaldırma işlemi başarısız: ' + err.message);
     }
   };
+
+  // Log button state
+  useEffect(() => {
+    console.log('Button visibility: user=', !!user, 'isFavorite=', isFavorite);
+  }, [user, isFavorite]);
 
   const sessionsByDate = {};
   cinemaData.forEach((cinema) => {
@@ -486,21 +579,23 @@ export default function MovieDetailPage() {
               <p className="text-gray-300 leading-relaxed">{movie.description}</p>
             </motion.div>
 
-            {typeof window !== 'undefined' && (
-              <motion.div
-                className="mt-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-              >
+            <motion.div
+              className="mt-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+            >
+              {user && (
                 <button
-                  onClick={toggleFavorite}
+                  onClick={() => {
+                    console.log('Button clicked, calling toggleFavorite');
+                    toggleFavorite();
+                  }}
                   className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${
                     isFavorite
                       ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white'
                       : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white'
-                  }`}
-                  disabled={!localStorage.getItem('user')} // Giriş yapmamışsa buton devre dışı
+                  } cursor-pointer`}
                 >
                   {isFavorite ? (
                     <>
@@ -538,8 +633,8 @@ export default function MovieDetailPage() {
                     </>
                   )}
                 </button>
-              </motion.div>
-            )}
+              )}
+            </motion.div>
 
             <motion.div
               className="mt-12"
@@ -595,6 +690,7 @@ export default function MovieDetailPage() {
                           hour: '2-digit',
                           minute: '2-digit',
                         });
+                        const showtimeString = showtime.toISOString().split('.')[0];
 
                         return (
                           <motion.div
@@ -611,7 +707,7 @@ export default function MovieDetailPage() {
                                 </p>
                               </div>
                               <Link
-                                href={`/tickets?movie=${movie.id}`}
+                                href={`/tickets/select-type?movie=${movie.id}&cinema=${cinema.id}&hall=${encodeURIComponent(`${showtimeString}|${cinema.hallName}`)}`}
                                 className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-purple-500/20 flex items-center justify-center gap-2"
                               >
                                 <svg
