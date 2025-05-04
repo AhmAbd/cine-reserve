@@ -15,6 +15,19 @@ export default function CinemaDetailPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Function to generate map URL
+  const getMapUrl = () => {
+    if (cinema?.mapLink) return cinema.mapLink;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      cinema?.name + ' ' + cinema?.location
+    )}`;
+  };
+
+  // Function to open Google Maps
+  const openGoogleMaps = () => {
+    window.open(getMapUrl(), '_blank', 'noopener,noreferrer');
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -52,7 +65,7 @@ export default function CinemaDetailPage({ params }) {
                   duration: data.duration,
                   imgSrc: data.imgSrc,
                   showtime: showtimeDate,
-                  hallNumber: s.hallNumber || 'Bilinmeyen Salon', // Fetch hallNumber with fallback
+                  hallNumber: s.hallNumber || 'Bilinmeyen Salon',
                 });
               }
             }
@@ -232,27 +245,39 @@ export default function CinemaDetailPage({ params }) {
             animate={{ scaleX: 1 }}
             transition={{ duration: 0.8, delay: 0.5 }}
           />
-          <motion.p
-            className="text-lg text-gray-300 mb-2"
+          {/* <motion.p
+            className="text-lg text-gray-300 mb-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
           >
             {cinema.location}
-          </motion.p>
-          {cinema.mapLink && (
-            <motion.a
-              href={cinema.mapLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-purple-400 hover:text-purple-300 underline mt-1 inline-block transition-colors"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.9 }}
+          </motion.p> */}
+          
+          {/* Always show map button */}
+          <motion.button
+            onClick={openGoogleMaps}
+            className="flex items-center justify-center gap-2 mx-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-300 shadow-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.9 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
             >
-              Google Maps'te Aç
-            </motion.a>
-          )}
+              <path
+                fillRule="evenodd"
+                d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Haritada Göster
+          </motion.button>
         </motion.div>
 
         {/* Showings by Date */}
@@ -305,7 +330,6 @@ export default function CinemaDetailPage({ params }) {
                           >
                             Bilet Al
                           </Link>
-
                         </div>
                       </div>
                     </motion.div>

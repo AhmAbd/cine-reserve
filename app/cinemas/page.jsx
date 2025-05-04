@@ -152,24 +152,10 @@ export default function CinemaListPage() {
                       boxShadow: "0 10px 25px -5px rgba(124, 58, 237, 0.3)",
                     }}
                   >
-                    {/* <div className="relative">
-                      <motion.img
-                        src={cinema.imgSrc}
-                        alt={cinema.name}
-                        className="w-full h-64 object-cover"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                    </div> */}
                     <div className="p-5 flex-grow">
                       <h2 className="text-xl font-semibold mb-1">
                         {cinema.name}
                       </h2>
-                      <p className="text-sm text-gray-400 mb-3">
-                        {cinema.location}
-                      </p>
                       <motion.div
                         className="w-full h-1 bg-gradient-to-r from-purple-600 to-transparent rounded-full"
                         initial={{ scaleX: 0 }}
