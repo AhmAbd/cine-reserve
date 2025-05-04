@@ -122,7 +122,15 @@ export default function ClientLayout({ children }) {
                   Sinemalar
                 </motion.span>
               </Link>
-
+              <Link href="/bilet-sorgula">
+                <motion.span
+                  className="nav-link text-gray-300 font-medium hover:text-purple-400 transition-colors duration-300"
+                  whileHover={{ y: -2, color: "#c084fc" }}
+                  transition={{ duration: 0.3 }}
+                >
+                  Bilet Sorgula
+                </motion.span>
+              </Link>
               {user ? (
                 <>
                   <Link href="/account">
