@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { db } from '../../../lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore'; // Added addDoc
 import { getAuth } from 'firebase/auth';
 import { Minus, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,6 +40,7 @@ export default function SelectTicketType() {
   const [movieName, setMovieName] = useState('');
   const [cinemaName, setCinemaName] = useState('');
   const [sessionTime, setSessionTime] = useState('');
+  const [isSaving, setIsSaving] = useState(false); // Prevent multiple saves
 
   // Validate query parameters
   if (!movieId || !cinemaId || !hall) {
@@ -81,10 +82,8 @@ export default function SelectTicketType() {
         }
 
         // Parse session time from hall parameter
-        const hallParts = hall.split('|');
-        if (hallParts.length > 1) {
-          setSessionTime(hallParts[1]);
-        }
+        // Changed: Use full hall string as sessionTime
+        setSessionTime(hall); // e.g., '2025-05-04T14:30:00|Salon1'
       } catch (error) {
         console.error('Error fetching data:', error);
         setFetchError('Veri yüklenirken hata oluştu. Lütfen daha sonra tekrar deneyin.');
@@ -107,14 +106,36 @@ export default function SelectTicketType() {
     router.push(`/login?redirect=${redirectUrl}`);
   };
 
-  const handleContinueAsGuest = () => {
+  const handleContinueAsGuest = async () => {
+    if (isSaving) return; // Prevent multiple clicks
+    setIsSaving(true);
     setShowAuthDialog(false);
-    // Generate a unique booking ID for guest
-    const bookingId = `GT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    console.log('Guest booking ID generated:', bookingId);
-    router.push(
-      `/tickets/select-seat?movie=${movieId}&cinema=${cinemaId}&booking=${bookingId}&full=${counts.full}&student=${counts.student}&session=${encodeURIComponent(sessionTime)}&guest=true`
-    );
+
+    try {
+      // Changed: Generate bookingId in Firestore guestTickets
+      const bookingRef = await addDoc(collection(db, 'guestTickets'), {
+        cinemaId,
+        cinemaName: cinemaName || 'Sinema Adı Bilinmiyor',
+        fullCount: counts.full,
+        movieId,
+        movieName: movieName || 'Film Adı Bilinmiyor',
+        session: sessionTime || 'Seans Bilinmiyor',
+        studentCount: counts.student,
+        timestamp: serverTimestamp(),
+        totalPrice: total,
+        status: 'pending',
+      });
+      const bookingId = bookingRef.id;
+      console.log('Select-Type: Guest bookingId generated:', bookingId);
+
+      const selectSeatUrl = `/tickets/select-seat?movie=${encodeURIComponent(movieId)}&cinema=${encodeURIComponent(cinemaId)}&booking=${encodeURIComponent(bookingId)}&full=${counts.full}&student=${counts.student}&session=${encodeURIComponent(sessionTime)}&guest=true`;
+      console.log('Select-Type: Navigating to:', selectSeatUrl);
+      router.push(selectSeatUrl);
+    } catch (error) {
+      console.error('Guest booking error:', error);
+      setTicketError('Misafir bileti oluşturulurken hata oluştu: ' + error.message);
+      setIsSaving(false);
+    }
   };
 
   const saveUserTicket = async (ticketId) => {
@@ -130,6 +151,7 @@ export default function SelectTicketType() {
         timestamp: serverTimestamp(),
         totalPrice: total,
         userId: user.uid,
+        status: 'pending',
       };
 
       await setDoc(doc(db, 'tickets', ticketId), ticketData);
@@ -141,26 +163,37 @@ export default function SelectTicketType() {
   };
 
   const handleContinue = async () => {
-    if (!user && !loading) {
-      setShowAuthDialog(true);
-      return;
-    }
+    if (isSaving) return; // Prevent multiple clicks
+    setIsSaving(true);
 
     try {
       if (counts.full + counts.student <= 0) {
         throw new Error('En az 1 bilet seçmelisiniz');
       }
+      // Added: Validate sessionTime
+      if (!sessionTime) {
+        throw new Error('Seans bilgisi eksik');
+      }
+
+      if (!user && !loading) {
+        setShowAuthDialog(true);
+        setIsSaving(false);
+        return;
+      }
 
       if (user) {
-        const ticketId = `UT-${user.uid}-${Date.now()}`;
+        const ticketId = doc(collection(db, 'tickets')).id; // Use Firestore auto-generated ID
         await saveUserTicket(ticketId);
-        router.push(
-          `/tickets/select-seat?movie=${movieId}&cinema=${cinemaId}&booking=${ticketId}&full=${counts.full}&student=${counts.student}&session=${encodeURIComponent(sessionTime)}&guest=false`
-        );
+        // Changed: Standardized URL with logging
+        const selectSeatUrl = `/tickets/select-seat?movie=${encodeURIComponent(movieId)}&cinema=${encodeURIComponent(cinemaId)}&booking=${encodeURIComponent(ticketId)}&full=${counts.full}&student=${counts.student}&session=${encodeURIComponent(sessionTime)}&guest=false`;
+        console.log('Select-Type: User bookingId generated:', ticketId);
+        console.log('Select-Type: Navigating to:', selectSeatUrl);
+        router.push(selectSeatUrl);
       }
     } catch (error) {
       console.error('İşlem hatası:', error);
       setTicketError(error.message || 'Bir hata oluştu. Lütfen tekrar deneyin.');
+      setIsSaving(false);
     }
   };
 
@@ -220,8 +253,9 @@ export default function SelectTicketType() {
               className="mt-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 py-3 rounded-full font-semibold transition disabled:opacity-50 shadow-lg"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              disabled={isSaving}
             >
-              Devam Et
+              {isSaving ? 'İşleniyor...' : 'Devam Et'}
             </motion.button>
           </motion.div>
         </div>

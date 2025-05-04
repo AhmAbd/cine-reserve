@@ -60,10 +60,33 @@ const TicketsPage = () => {
               }
             }
 
+            // Parse session time
+            let sessionDisplay = '—';
+            if (ticket.session && typeof ticket.session === 'string') {
+              console.log('TicketsPage: Raw ticket.session=', ticket.session);
+              const [datePart] = ticket.session.split('|');
+              if (datePart) {
+                const sessionDate = new Date(datePart);
+                if (!isNaN(sessionDate.getTime())) {
+                  sessionDisplay = sessionDate.toLocaleString('tr-TR', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                  });
+                } else {
+                  console.warn('TicketsPage: Invalid session date format=', datePart);
+                }
+              } else {
+                console.warn('TicketsPage: Missing date part in session=', ticket.session);
+              }
+            } else {
+              console.warn('TicketsPage: Invalid or missing session=', ticket.session);
+            }
+
             return {
               ...ticket,
               movieName: movieTitle,
-              hallDisplay: hallInfo
+              hallDisplay: hallInfo,
+              sessionDisplay
             };
           })
         );
@@ -205,12 +228,7 @@ const TicketsPage = () => {
                       </div>
                       <div className="text-sm text-gray-300">
                         <span className="font-medium text-white">Seans:</span>{' '}
-                        {ticket.session
-                          ? new Date(ticket.session).toLocaleString('tr-TR', {
-                              dateStyle: 'medium',
-                              timeStyle: 'short'
-                            })
-                          : '—'}
+                        {ticket.sessionDisplay}
                       </div>
                       <div className="text-sm text-gray-300">
                         <span className="font-medium text-white">Sinema:</span>{' '}

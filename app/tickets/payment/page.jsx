@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { db, auth } from '../../../lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, runTransaction, collection } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
@@ -14,6 +14,9 @@ export default function PaymentPage() {
   const ticketId = searchParams.get('ticketId');
   const full = parseInt(searchParams.get('full') || '0');
   const student = parseInt(searchParams.get('student') || '0');
+  const bookingId = searchParams.get('bookingId');
+  const sessionTime = searchParams.get('session');
+  const isGuest = searchParams.get('guest') === 'true';
 
   const [ticketData, setTicketData] = useState(null);
   const [filmData, setFilmData] = useState(null);
@@ -25,20 +28,26 @@ export default function PaymentPage() {
   const [showtime, setShowtime] = useState(null);
 
   useEffect(() => {
+    console.log('Payment: Initial parameters:', {
+      ticketId,
+      bookingId,
+      sessionTime,
+      full,
+      student,
+      isGuest,
+    });
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log('Payment: Auth state changed, user=', currentUser ? currentUser.uid : null);
       setUser(currentUser);
-      console.log('Kullanıcı durumu:', currentUser ? currentUser.uid : 'Kimliksiz');
     });
     return () => unsubscribe();
-  }, []);
+  }, [ticketId, bookingId, sessionTime, full, student, isGuest]);
 
   useEffect(() => {
-    console.log('URL parametreleri:', { ticketId, full, student });
-
     const fetchData = async () => {
       try {
         if (!ticketId) {
-          setError('Bilet bilgisi eksik. Lütfen koltuk seçim adımından tekrar deneyin.');
+          setError('Bilet kimliği eksik. Lütfen koltuk seçim adımından tekrar deneyin.');
           setLoading(false);
           return;
         }
@@ -49,16 +58,8 @@ export default function PaymentPage() {
           return;
         }
 
-        console.log('Bilet aranıyor, ticketId:', ticketId);
-        let ticketDoc = await getDoc(doc(db, 'tickets', ticketId));
-        let isGuest = false;
-        if (!ticketDoc.exists()) {
-          console.log('tickets koleksiyonunda bulunamadı, guestTickets kontrol ediliyor...');
-          ticketDoc = await getDoc(doc(db, 'guestTickets', ticketId));
-          isGuest = true;
-        }
-
-        console.log('Ticket document:', ticketDoc.exists() ? ticketDoc.data() : 'Not found', 'isGuest:', isGuest);
+        const ticketCollection = isGuest ? 'guestTickets' : 'tickets';
+        const ticketDoc = await getDoc(doc(db, ticketCollection, ticketId));
 
         if (!ticketDoc.exists()) {
           setError('Bilet bulunamadı. Lütfen koltuk seçim adımından tekrar deneyin.');
@@ -68,25 +69,23 @@ export default function PaymentPage() {
 
         const ticket = ticketDoc.data();
         setTicketData({ ...ticket, isGuest });
-        console.log('ticketData ayarlandı:', { ...ticket, isGuest });
 
         const filmDoc = await getDoc(doc(db, 'films', ticket.movieId));
         if (filmDoc.exists()) {
           const film = filmDoc.data();
           setFilmData(film);
 
-          const cinemaInfo = film.cinemas?.find(cinema => cinema.id === ticket.cinemaId);
-          if (cinemaInfo && cinemaInfo.showtime) {
-            setShowtime(new Date(cinemaInfo.showtime).toLocaleString('tr-TR', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              hour: '2-digit',
-              minute: '2-digit',
-            }));
-          } else {
-            setShowtime('Seans Bilinmiyor');
-          }
+          setShowtime(
+            ticket.session !== 'Seans Bilinmiyor'
+              ? new Date(ticket.session.split('|')[0]).toLocaleString('tr-TR', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : 'Seans Bilinmiyor'
+          );
         } else {
           setError('Film bilgileri bulunamadı.');
           setLoading(false);
@@ -102,68 +101,142 @@ export default function PaymentPage() {
           return;
         }
 
+        // Refresh seat lock
+        const seatDocId = `${ticket.movieId}_${ticket.cinemaId}_${encodeURIComponent(sessionTime)}`;
+        await runTransaction(db, async (transaction) => {
+          const seatRef = doc(db, 'cinema_seats', seatDocId);
+          const seatSnap = await transaction.get(seatRef);
+          const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
+
+          const updatedSeats = { ...seatData.seats };
+          ticket.seats.forEach((seatId) => {
+            // Lock seat if available, undefined, or already locked (by anyone)
+            if (!updatedSeats[seatId] || updatedSeats[seatId] === 'available' || updatedSeats[seatId].startsWith('locked_')) {
+              updatedSeats[seatId] = `locked_${bookingId}`;
+              console.log(`Payment: Refreshed lock for seat ${seatId} to locked_${bookingId}`);
+            }
+          });
+
+          transaction.set(seatRef, { seats: updatedSeats, lockTimestamp: serverTimestamp() }, { merge: true });
+        });
+
         setLoading(false);
       } catch (err) {
-        console.error('Veri çekme hatası:', err);
-        setError('Veri yüklenirken hata oluştu. Lütfen tekrar deneyin.');
+        console.error('Payment: Data fetch or lock refresh error:', err);
+        setError('Veri yüklenirken veya koltuk kilidi yenilenirken hata oluştu: ' + err.message);
         setLoading(false);
       }
     };
     fetchData();
-  }, [ticketId, full, student]);
+  }, [ticketId, full, student, isGuest, bookingId, sessionTime]);
+
+  // Auto-close notification and redirect after 3 seconds
+  useEffect(() => {
+    if (notification.message && notification.type === 'success') {
+      console.log('Payment: Notification set:', notification);
+      console.log('Payment: Notification DOM check:', document.querySelector('.notification'));
+      const timer = setTimeout(() => {
+        console.log('Payment: Auto-closing notification and redirecting');
+        if (user) {
+          console.log('Payment: Redirecting to /account/tickets for user=', user.uid);
+          router.push('/account/tickets');
+        } else if (ticketData?.isGuest) {
+          console.log('Payment: Redirecting to / for guest');
+          router.push('/');
+        }
+        setNotification({ message: '', type: '' });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification, user, ticketData, router]);
 
   const handlePayment = async () => {
     try {
       setLoading(true);
-      if (!ticketData || !ticketData.totalPrice || !ticketId) {
-        throw new Error('Ödeme bilgileri eksik.');
+      console.log('Payment: Attempting payment with:', {
+        ticketId,
+        bookingId,
+        sessionTime,
+        ticketData,
+      });
+
+      const missingParams = [];
+      if (!ticketId) missingParams.push('ticketId');
+      if (!bookingId) missingParams.push('bookingId');
+      if (!sessionTime) missingParams.push('sessionTime');
+      if (!ticketData || !ticketData.totalPrice) missingParams.push('ticketData or totalPrice');
+
+      if (missingParams.length > 0) {
+        throw new Error(`Ödeme bilgileri eksik: ${missingParams.join(', ')}`);
       }
 
       if (!user && !ticketData.isGuest) {
         throw new Error('Kullanıcı kimliği doğrulanmadı. Lütfen giriş yapın.');
       }
 
-      const seatDocId = `${ticketData.movieId}_${ticketData.cinemaId}`;
-      const seatRef = doc(db, 'cinema_seats', seatDocId);
-      const seatSnap = await getDoc(seatRef);
-      const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
-      const updatedSeats = { ...seatData.seats };
+      await runTransaction(db, async (transaction) => {
+        const seatDocId = `${ticketData.movieId}_${ticketData.cinemaId}_${encodeURIComponent(sessionTime)}`;
+        console.log('Payment: seatDocId=', seatDocId, 'bookingId=', bookingId, 'seats=', ticketData.seats);
+        const seatRef = doc(db, 'cinema_seats', seatDocId);
+        const seatSnap = await transaction.get(seatRef);
+        const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
+        console.log('Payment: Firestore seatData.seats=', seatData.seats);
 
-      ticketData.seats.forEach((seatId) => {
-        if (updatedSeats[seatId]?.startsWith('locked_')) {
-          updatedSeats[seatId] = `booked_${ticketId}`;
+        // Validate seats
+        const invalidSeats = ticketData.seats.filter((seatId) => {
+          const status = seatData.seats[seatId];
+          console.log(`Payment: Validating seat ${seatId}: status=${status}, expected=locked_${bookingId} or available`);
+          return status && status !== `locked_${bookingId}` && status !== 'available';
+        });
+
+        if (invalidSeats.length > 0) {
+          console.error('Payment: Invalid seats=', invalidSeats, 'expected=locked_' + bookingId);
+          throw new Error(`Seçtiğiniz koltuklar artık mevcut değil: ${invalidSeats.join(', ')}`);
         }
+
+        const updatedSeats = { ...seatData.seats };
+        ticketData.seats.forEach((seatId) => {
+          updatedSeats[seatId] = `booked_${ticketId}`;
+          console.log(`Payment: Marking seat ${seatId} as booked_${ticketId}`);
+        });
+
+        // Update ticket status
+        const ticketRef = doc(db, ticketData.isGuest ? 'guestTickets' : 'tickets', ticketId);
+        transaction.set(ticketRef, { status: 'completed' }, { merge: true });
+
+        // Create payment record
+        const paymentId = doc(collection(db, 'payments')).id;
+        const paymentData = {
+          ticketId,
+          totalPrice: ticketData.totalPrice,
+          timestamp: serverTimestamp(),
+          status: 'completed',
+          userId: user ? user.uid : null,
+        };
+        transaction.set(doc(db, 'payments', paymentId), paymentData);
+
+        // Update seats
+        transaction.set(seatRef, { seats: updatedSeats, lockTimestamp: serverTimestamp() }, { merge: true });
       });
 
-      await setDoc(seatRef, { seats: updatedSeats }, { merge: true });
-
-      const paymentId = `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      const paymentData = {
-        ticketId,
-        totalPrice: ticketData.totalPrice,
-        timestamp: serverTimestamp(),
-        status: 'completed',
-        userId: user ? user.uid : null,
-      };
-      await setDoc(doc(db, 'payments', paymentId), paymentData);
-
-      const ticketRef = doc(db, ticketData.isGuest ? 'guestTickets' : 'tickets', ticketId);
-      await setDoc(ticketRef, { status: 'completed' }, { merge: true });
-
+      console.log('Payment: Payment successful, ticketId=', ticketId);
       setNotification({ message: 'Ödeme başarılı! Biletiniz hazır.', type: 'success' });
-      setLoading(false);
     } catch (err) {
-      console.error('Ödeme hatası:', err);
+      console.error('Payment: Payment error:', err);
       setNotification({ message: `Ödeme işlemi başarısız: ${err.message}`, type: 'error' });
+    } finally {
       setLoading(false);
     }
   };
 
   const handleNotificationClose = () => {
+    console.log('Payment: Notification closed manually');
     if (notification.type === 'success') {
       if (user) {
+        console.log('Payment: Redirecting to /account/tickets for user=', user.uid);
         router.push('/account/tickets');
       } else if (ticketData?.isGuest) {
+        console.log('Payment: Redirecting to / for guest');
         router.push('/');
       }
     }
@@ -184,11 +257,7 @@ export default function PaymentPage() {
             animate={{ rotateY: 360, scale: [1, 1.1, 1] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           >
-            <svg
-              className="w-12 h-12 text-white"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
+            <svg className="w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 2h6v2H9V2zm0 4h6v2H9V6zm0 4h6v2H9v-2zm0 4h6v2H9v-2zm0 4h6v2H9v-2zM5 2H3v20h2V2zm16 0h-2v20h2V2zm-6 0h-2v20h2V2z" />
             </svg>
           </motion.div>
@@ -218,6 +287,8 @@ export default function PaymentPage() {
           <motion.button
             onClick={() => router.push('/')}
             className="bg-gradient-to-r from-[#6b46c1] to-[#8e5cf5] hover:from-[#553c9a] hover:to-[#7b4ded] text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-lg hover:shadow-[#6b46c1]/30"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             Ana Sayfaya Dön
           </motion.button>
@@ -333,7 +404,7 @@ export default function PaymentPage() {
               <h3 className="text-2xl font-semibold text-[#8e5cf5] mb-4 flex items-center">
                 <span className="mr-3">🎫</span> Koltuk Bilgileri
               </h3>
-              <p className="text-xl text-[#e5e7eb]">Salon: {cinemaData?.halls?.[0] || 'Salon'}</p>
+              <p className="text-xl text-[#e5e7eb]">Salon: {ticketData?.session.split('|')[1] || 'Salon'}</p>
               <p className="text-xl text-[#e5e7eb] mt-2">Koltuk: {ticketData?.seats?.join(', ') || 'Koltuk'}</p>
               <p className="text-xl text-[#e5e7eb] mt-2">
                 Bilet Türü: {ticketData?.fullCount || 0} Tam Bilet
@@ -425,76 +496,64 @@ export default function PaymentPage() {
                     İşleniyor...
                   </span>
                 ) : (
-                  "Ödemeyi Tamamla"
+                  'Ödemeyi Tamamla'
                 )}
               </motion.button>
             </div>
           </motion.div>
         </div>
-      </div>
 
-      <AnimatePresence>
-        {notification.message && (
-          <motion.div
-            className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
+        <AnimatePresence>
+          {notification.message && (
             <motion.div
-              className={`p-6 rounded-xl shadow-lg border text-center ${
-                notification.type === 'success'
-                  ? 'bg-[#2a2a3d] border-[#6b46c1]/30'
-                  : 'bg-red-500/20 border-red-500/30'
-              }`}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              key={notification.message} // Ensure unique key for re-rendering
+              className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-6 rounded-2xl shadow-2xl backdrop-blur-lg border border-[#6b46c1]/30 max-w-sm w-full z-[2000] notification
+                ${notification.type === 'success' ? 'bg-gradient-to-r from-[#6b46c1]/80 to-[#8e5cf5]/80' : 'bg-gradient-to-r from-red-600/80 to-red-800/80'}`}
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 20 }}
+              transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
             >
-              <p
-                className={`text-lg font-medium mb-4 ${
-                  notification.type === 'success' ? 'text-[#8e5cf5]' : 'text-red-300'
-                }`}
-              >
-                {notification.message}
-              </p>
+              <div className="flex items-center gap-4">
+                {notification.type === 'success' ? (
+                  <motion.svg
+                    className="w-8 h-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </motion.svg>
+                ) : (
+                  <motion.svg
+                    className="w-8 h-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </motion.svg>
+                )}
+                <span className="text-lg font-medium text-white">{notification.message}</span>
+              </div>
               <motion.button
                 onClick={handleNotificationClose}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 shadow-lg ${
-                  notification.type === 'success'
-                    ? 'bg-gradient-to-r from-[#6b46c1] to-[#8e5cf5] hover:from-[#553c9a] hover:to-[#7b4ded] text-white'
-                    : 'bg-red-600 hover:bg-red-700 text-white'
-                }`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="absolute top-2 right-2 text-white hover:text-gray-200"
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
               >
-                Tamam
+                ✕
               </motion.button>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
-
-        .font-cinematic {
-          font-family: 'Montserrat', sans-serif;
-        }
-
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-          background: #0d0d1a;
-        }
-        ::-webkit-scrollbar-thumb {
-          background: linear-gradient(180deg, #6b46c1, #8e5cf5);
-          border-radius: 4px;
-        }
-      `}</style>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

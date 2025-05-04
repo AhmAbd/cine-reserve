@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { db, auth } from '../../../lib/firebase';
-import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from 'components/ui/button';
@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from 'components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from 'components/ui/tooltip';
 import Tilt from 'react-parallax-tilt';
 
-const LOCK_TIMEOUT_MS = 10 * 60 * 1000;
+const LOCK_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 
 const generateSeats = (totalSeats = 48) => {
   const seatsPerRow = 8;
@@ -41,7 +41,7 @@ const SeatIcon = ({ state, seatId }) => {
     selected: { backrest: '#8b5cf6', cushion: '#7c3aed', armrest: '#6d28d9', text: 'white' },
     available: { backrest: '#374151', cushion: '#4b5563', armrest: '#3f4a5a', text: '#d1d5db' },
     locked: { backrest: '#ef4444', cushion: '#dc2626', armrest: '#b91c1c', text: '#fee2e2' },
-    booked: { backrest: '#5b21b6', cushion: '#4c1d95', armrest: '#3b1680', text: '#e9d5ff' }
+    booked: { backrest: '#5b21b6', cushion: '#4c1d95', armrest: '#3b1680', text: '#e9d5ff' },
   };
 
   const current = colors[state] || colors.available;
@@ -60,17 +60,24 @@ const SeatIcon = ({ state, seatId }) => {
         </text>
         <defs>
           <linearGradient id="backrestShade" x1="12" y1="8" x2="12" y2="12">
-            <stop stopColor="black" stopOpacity="0.3"/>
-            <stop offset="1" stopColor="black" stopOpacity="0"/>
+            <stop stopColor="black" stopOpacity="0.3" />
+            <stop offset="1" stopColor="black" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="cushionShade" x1="10" y1="20" x2="10" y2="24">
-            <stop stopColor="black" stopOpacity="0.3"/>
-            <stop offset="1" stopColor="black" stopOpacity="0"/>
+            <stop stopColor="black" stopOpacity="0.3" />
+            <stop offset="1" stopColor="black" stopOpacity="0" />
           </linearGradient>
         </defs>
       </svg>
-      {state === 'selected' && <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-400 rounded-full border-2 border-white z-10"></div>}
-      {state === 'locked' && <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-400 rounded-full border-2 border-white z-10"></div>}
+      {state === 'selected' && (
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-400 rounded-full border-2 border-white z-10"></div>
+      )}
+      {state === 'locked' && (
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-400 rounded-full border-2 border-white z-10"></div>
+      )}
+      {state === 'booked' && (
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-800 rounded-full border-2 border-white z-10"></div>
+      )}
     </div>
   );
 };
@@ -84,6 +91,7 @@ export default function SeatSelection() {
   const bookingId = searchParams.get('booking');
   const fullCount = parseInt(searchParams.get('full') || '0');
   const studentCount = parseInt(searchParams.get('student') || '0');
+  const sessionTime = searchParams.get('session');
   const isGuest = searchParams.get('guest') === 'true';
   const ticketCount = fullCount + studentCount;
 
@@ -95,16 +103,44 @@ export default function SeatSelection() {
   const [guestInfo, setGuestInfo] = useState({ fullName: '', email: '', phoneNumber: '' });
   const [user, setUser] = useState(null);
   const [lockingSeats, setLockingSeats] = useState(false);
-  const seatDocId = `${movieId}_${cinemaId}`;
+  const seatDocId = `${movieId}_${cinemaId}_${encodeURIComponent(sessionTime || '')}`;
 
   useEffect(() => {
+    const params = Object.fromEntries(searchParams.entries());
+    console.log('Select-Seat: All search parameters:', params);
+    console.log('Select-Seat: Parsed parameters:', {
+      movieId,
+      cinemaId,
+      bookingId,
+      sessionTime,
+      fullCount,
+      studentCount,
+      isGuest,
+      seatDocId,
+    });
+
+    if (!bookingId || !sessionTime || !movieId || !cinemaId) {
+      console.error('Select-Seat: Critical parameters missing:', {
+        bookingId,
+        sessionTime,
+        movieId,
+        cinemaId,
+      });
+      setError('Rezervasyon bilgileri eksik: Film, sinema, rezervasyon kimliği veya seans bilgisi eksik.');
+      setLoading(false);
+      router.push(`/tickets/select-type?movie=${movieId || ''}&cinema=${cinemaId || ''}`);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
     return () => unsubscribe();
-  }, []);
+  }, [searchParams, movieId, cinemaId, bookingId, sessionTime, router]);
 
   useEffect(() => {
+    if (error) return;
+
     const fetchAndSubscribe = async () => {
       try {
         const cinemaSnap = await getDoc(doc(db, 'cinemas', cinemaId));
@@ -112,51 +148,61 @@ export default function SeatSelection() {
         const docRef = doc(db, 'cinema_seats', seatDocId);
 
         const unsubscribe = onSnapshot(docRef, (docSnap) => {
-          console.log('Firestore snapshot received:', docSnap.exists() ? docSnap.data() : 'No data');
           const occupiedMap = docSnap.exists() ? docSnap.data()?.seats || {} : {};
+          console.log('Select-Seat: Firestore seats data=', occupiedMap);
           const newSeats = generateSeats(seatCount);
 
           newSeats.forEach((row) => {
             row.forEach((seat) => {
               const value = occupiedMap[seat.id];
-              if (typeof value === 'string') {
-                if (value.startsWith('booked_')) {
-                  seat.occupied = true;
-                  seat.booked = true;
-                  seat.justBooked = true;
-                } else if (value.startsWith('locked_')) {
+              if (value) {
+                if (value.startsWith('locked_')) {
                   seat.occupied = true;
                   seat.booked = false;
+                } else if (value.startsWith('booked_')) {
+                  seat.occupied = true;
+                  seat.booked = true;
+                  seat.justBooked = value === `booked_${bookingId}`;
+                } else if (value === 'available') {
+                  seat.occupied = false;
+                  seat.booked = false;
+                } else {
+                  seat.occupied = true;
+                  seat.booked = false;
+                  console.warn(`Select-Seat: Unexpected seat value for ${seat.id}: ${value}`);
                 }
+              } else {
+                seat.occupied = false;
+                seat.booked = false;
               }
+              console.log(`Select-Seat: Seat ${seat.id}: occupied=${seat.occupied}, booked=${seat.booked}, justBooked=${seat.justBooked}`);
             });
           });
 
-          console.log('Updated seats state:', newSeats);
           setSeats(newSeats);
           setLoading(false);
         }, (err) => {
-          console.error('Snapshot error:', err);
+          console.error('Select-Seat: Snapshot error:', err);
           setError('Koltuk bilgileri yüklenirken bir hata oluştu: ' + err.message);
           setLoading(false);
         });
 
         return unsubscribe;
       } catch (err) {
-        console.error('Fetch error:', err);
-        setError('Koltuk bilgileri yüklenirken bir hata oluştu: ' + err.message);
+        console.error('Select-Seat: Fetch error:', err);
+        setError('Koltuk bilgileri yüklenirken hata oluştu: ' + err.message);
         setLoading(false);
       }
     };
 
     fetchAndSubscribe();
-  }, [seatDocId, cinemaId]);
+  }, [seatDocId, cinemaId, bookingId, error]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || error) return;
     if (timeLeft <= 0) {
       alert('Süre doldu! Lütfen koltuk seçimini yeniden yapın.');
-      router.replace(`/tickets/select-seat?movie=${movieId}&cinema=${cinemaId}&booking=${bookingId}&full=${fullCount}&student=${studentCount}&guest=${isGuest}`);
+      router.replace(`/tickets/select-type?movie=${movieId}&cinema=${cinemaId}`);
       return;
     }
 
@@ -165,59 +211,100 @@ export default function SeatSelection() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, loading, router, movieId, cinemaId, bookingId, fullCount, studentCount, isGuest]);
+  }, [timeLeft, loading, error, router, movieId, cinemaId]);
 
   useEffect(() => {
+    let isNavigating = false;
+
     const cleanupSeats = async () => {
-      if (selectedSeats.length > 0) {
-        try {
+      if (selectedSeats. length === 0 || isNavigating) {
+        console.log('Select-Seat: Cleanup skipped: no seats or navigating');
+        return;
+      }
+
+      try {
+        await runTransaction(db, async (transaction) => {
           const seatRef = doc(db, 'cinema_seats', seatDocId);
-          const seatSnap = await getDoc(seatRef);
+          const seatSnap = await transaction.get(seatRef);
           const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
 
-          const updatedSeats = { ...seatData.seats };
-          selectedSeats.forEach((seatId) => {
-            if (updatedSeats[seatId]?.startsWith(`locked_${bookingId}`)) {
-              updatedSeats[seatId] = 'available';
-            }
-          });
+          const ticketRef = doc(db, isGuest ? 'guestTickets' : 'tickets', bookingId);
+          const ticketSnap = await transaction.get(ticketRef);
+          let shouldCleanup = true;
 
-          await setDoc(seatRef, { seats: updatedSeats }, { merge: true });
-          console.log('Seats cleaned up:', selectedSeats);
-        } catch (err) {
-          console.error('Cleanup seats error:', err);
-        }
+          if (ticketSnap.exists()) {
+            const ticketStatus = ticketSnap.data().status;
+            if (ticketStatus === 'completed' || ticketStatus === 'payment') {
+              shouldCleanup = false;
+              console.log(`Select-Seat: Cleanup skipped: ticket status=${ticketStatus}`);
+            }
+          }
+
+          if (shouldCleanup) {
+            const updatedSeats = { ...seatData.seats };
+            selectedSeats.forEach((seatId) => {
+              if (updatedSeats[seatId]?.startsWith(`locked_${bookingId}`)) {
+                updatedSeats[seatId] = 'available';
+                console.log(`Select-Seat: Cleanup: Unlocked seat ${seatId} for bookingId=${bookingId}`);
+              }
+            });
+            transaction.set(seatRef, { seats: updatedSeats, lockTimestamp: serverTimestamp() }, { merge: true });
+          }
+        });
+      } catch (err) {
+        console.error('Select-Seat: Cleanup seats error:', err);
       }
     };
 
-    window.addEventListener('beforeunload', cleanupSeats);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') cleanupSeats();
-    });
+    const handleBeforeUnload = (event) => {
+      if (!isNavigating) {
+        cleanupSeats();
+      }
+    };
 
-    const timeout = setTimeout(cleanupSeats, LOCK_TIMEOUT_MS);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && !isNavigating) {
+        cleanupSeats();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    const timeout = setTimeout(() => {
+      if (!isNavigating) {
+        cleanupSeats();
+      }
+    }, LOCK_TIMEOUT_MS);
 
     return () => {
-      window.removeEventListener('beforeunload', cleanupSeats);
-      document.removeEventListener('visibilitychange', cleanupSeats);
+      isNavigating = true; // Prevent cleanup during navigation
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearTimeout(timeout);
     };
-  }, [selectedSeats, seatDocId, bookingId]);
+  }, [selectedSeats, seatDocId, bookingId, isGuest]);
 
   const handleSelect = (rowIndex, seatIndex) => {
     const seatId = seats[rowIndex][seatIndex].id;
-    console.log('Seat selected:', seatId, 'Current state:', seats[rowIndex][seatIndex]);
+    if (seats[rowIndex][seatIndex].occupied) {
+      console.log(`Select-Seat: Cannot select occupied seat ${seatId}`);
+      return;
+    }
 
     if (selectedSeats.length >= ticketCount && !selectedSeats.includes(seatId)) {
       alert(`En fazla ${ticketCount} koltuk seçebilirsiniz.`);
       return;
     }
 
-    if (selectedSeats.includes(seatId)) {
-      setSelectedSeats((prev) => prev.filter((s) => s !== seatId));
-    } else {
-      setSelectedSeats((prev) => [...prev, seatId]);
-    }
+    setSelectedSeats((prev) => {
+      if (prev.includes(seatId)) {
+        console.log(`Select-Seat: Deselected seat ${seatId}`);
+        return prev.filter((s) => s !== seatId);
+      }
+      console.log(`Select-Seat: Selected seat ${seatId}`);
+      return [...prev, seatId];
+    });
   };
 
   const handleContinue = async () => {
@@ -231,102 +318,117 @@ export default function SeatSelection() {
       return;
     }
 
+    if (!bookingId || !sessionTime) {
+      console.error('Select-Seat: Missing bookingId or sessionTime', { bookingId, sessionTime });
+      alert('Rezervasyon bilgileri eksik. Lütfen tekrar deneyin.');
+      router.push(`/tickets/select-type?movie=${movieId || ''}&cinema=${cinemaId || ''}`);
+      return;
+    }
+
     try {
       setLockingSeats(true);
-      const seatRef = doc(db, 'cinema_seats', seatDocId);
-      const seatSnap = await getDoc(seatRef);
-      const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
-      console.log('Firestore seat data before locking:', seatData);
+      console.log('Select-Seat: Locking seats=', selectedSeats, 'bookingId=', bookingId);
 
-      // Validate that selected seats are still available
-      const invalidSeats = selectedSeats.filter((seatId) => {
-        const status = seatData.seats[seatId];
-        return status && (status.startsWith('booked_') || status.startsWith('locked_'));
+      await runTransaction(db, async (transaction) => {
+        const seatRef = doc(db, 'cinema_seats', seatDocId);
+        const seatSnap = await transaction.get(seatRef);
+        const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
+
+        const invalidSeats = selectedSeats.filter((seatId) => {
+          const status = seatData.seats[seatId];
+          console.log(`Select-Seat: Validating seat ${seatId}: status=${status}, expected=available or locked_${bookingId}`);
+          return status && status !== 'available' && status !== `locked_${bookingId}`;
+        });
+
+        if (invalidSeats.length > 0) {
+          console.error('Select-Seat: Invalid seats during locking=', invalidSeats);
+          throw new Error('Seçtiğiniz bazı koltuklar artık mevcut değil: ' + invalidSeats.join(', '));
+        }
+
+        const updatedSeats = { ...seatData.seats };
+        selectedSeats.forEach((seatId) => {
+          updatedSeats[seatId] = `locked_${bookingId}`;
+          console.log(`Select-Seat: Locking seat ${seatId} to locked_${bookingId}`);
+        });
+
+        transaction.set(seatRef, { seats: updatedSeats, lockTimestamp: serverTimestamp() }, { merge: true });
+
+        const ticketId = bookingId;
+        const ticketData = {
+          cinemaId,
+          cinemaName: (await getDoc(doc(db, 'cinemas', cinemaId))).data()?.name || 'Sinema Adı Bilinmiyor',
+          fullCount,
+          movieId,
+          movieName: (await getDoc(doc(db, 'films', movieId))).data()?.title || 'Film Adı Bilinmiyor',
+          session: sessionTime || 'Seans Bilinmiyor',
+          studentCount,
+          seats: selectedSeats,
+          timestamp: serverTimestamp(),
+          totalPrice: fullCount * 195 + studentCount * 150,
+          status: 'pending',
+          bookingId,
+        };
+
+        const ticketRef = doc(db, isGuest ? 'guestTickets' : 'tickets', ticketId);
+        transaction.set(ticketRef, isGuest ? { ...ticketData, guestInfo } : { ...ticketData, userId: user?.uid || null });
       });
 
-      if (invalidSeats.length > 0) {
-        alert('Seçtiğiniz bazı koltuklar artık mevcut değil. Lütfen yeniden seçim yapın.');
-        setSelectedSeats([]);
-        setLockingSeats(false);
-        return;
-      }
+      // Verify locks with retries
+      const MAX_VERIFY_RETRIES = 3;
+      const RETRY_DELAY_MS = 500;
+      let verifyAttempt = 0;
+      let locksVerified = false;
 
-      const updatedSeats = { ...seatData.seats };
-      selectedSeats.forEach((seatId) => {
-        updatedSeats[seatId] = `locked_${bookingId}`;
-      });
+      while (verifyAttempt < MAX_VERIFY_RETRIES && !locksVerified) {
+        verifyAttempt++;
+        console.log(`Select-Seat: Verification attempt ${verifyAttempt} for seats=`, selectedSeats);
 
-      await setDoc(seatRef, { seats: updatedSeats, lockTimestamp: serverTimestamp() }, { merge: true });
-      console.log('Seats locked in Firestore:', selectedSeats);
+        const seatRef = doc(db, 'cinema_seats', seatDocId);
+        const seatSnap = await getDoc(seatRef);
+        const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
 
-      // Update local seats state to reflect locked status
-      setSeats((prevSeats) =>
-        prevSeats.map((row) =>
-          row.map((seat) => {
-            if (selectedSeats.includes(seat.id)) {
-              return { ...seat, occupied: true, booked: false };
-            }
-            return seat;
-          })
-        )
-      );
-      setLockingSeats(false);
+        const failedLocks = selectedSeats.filter((seatId) => {
+          const status = seatData.seats[seatId];
+          console.log(`Select-Seat: Verifying seat ${seatId}: status=${status}, expected=locked_${bookingId}`);
+          return status !== `locked_${bookingId}`;
+        });
 
-      // Films koleksiyonundan seans bilgisini al
-      const filmRef = doc(db, 'films', movieId);
-      const filmSnap = await getDoc(filmRef);
-      let sessionInfo = 'Seans Bilinmiyor';
-      let filmData = {};
-
-      if (filmSnap.exists()) {
-        filmData = filmSnap.data();
-        // Örnek: sessions alanı bir dizi ve cinemaId ile eşleşen seansı buluyoruz
-        const sessions = filmData.sessions || [];
-        const matchingSession = sessions.find(
-          (session) => session.cinemaId === cinemaId && session.hallNumber === searchParams.get('hall')
-        );
-
-        if (matchingSession) {
-          sessionInfo = `${matchingSession.hallNumber} - ${new Date(matchingSession.showtime).toLocaleString()}`;
+        if (failedLocks.length === 0) {
+          locksVerified = true;
+          console.log('Select-Seat: Seats successfully locked:', selectedSeats);
+        } else {
+          console.warn(`Select-Seat: Verification attempt ${verifyAttempt} failed for seats=`, failedLocks);
+          if (verifyAttempt < MAX_VERIFY_RETRIES) {
+            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+          }
         }
       }
 
-      const ticketId = `TICK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      const ticketData = {
-        cinemaId,
-        cinemaName: (await getDoc(doc(db, 'cinemas', cinemaId))).data()?.name || 'Sinema Adı Bilinmiyor',
-        fullCount,
-        movieId,
-        movieName: filmData?.title || 'Film Adı Bilinmiyor',
-        session: sessionInfo, // Güncellenmiş seans bilgisi
-        studentCount,
-        seats: selectedSeats,
-        timestamp: serverTimestamp(),
-        totalPrice: fullCount * 195 + studentCount * 150,
-        status: 'pending',
-        bookingId,
-      };
-
-      if (isGuest) {
-        await setDoc(doc(db, 'guestTickets', ticketId), {
-          ...ticketData,
-          guestInfo: {
-            fullName: guestInfo.fullName,
-            email: guestInfo.email,
-            phoneNumber: guestInfo.phoneNumber,
-          },
-        });
-      } else {
-        await setDoc(doc(db, 'tickets', ticketId), {
-          ...ticketData,
-          userId: user?.uid || null,
-        });
+      if (!locksVerified) {
+        const seatRef = doc(db, 'cinema_seats', seatDocId);
+        const seatSnap = await getDoc(seatRef);
+        const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
+        const failedLocks = selectedSeats.filter((seatId) => seatData.seats[seatId] !== `locked_${bookingId}`);
+        console.error('Select-Seat: Lock verification failed after retries for seats=', failedLocks, 'bookingId=', bookingId);
+        throw new Error('Koltuk kilitleme doğrulanamadı: ' + failedLocks.join(', '));
       }
 
-      router.push(`/tickets/payment?ticketId=${ticketId}&full=${fullCount}&student=${studentCount}&bookingId=${bookingId}`);
+      // Navigate to payment
+      console.log('Select-Seat: Navigating to payment with', {
+        ticketId: bookingId,
+        bookingId,
+        sessionTime,
+        fullCount,
+        studentCount,
+        isGuest,
+      });
+      const paymentUrl = `/tickets/payment?ticketId=${encodeURIComponent(bookingId)}&bookingId=${encodeURIComponent(bookingId)}&session=${encodeURIComponent(sessionTime)}&full=${fullCount}&student=${studentCount}&guest=${isGuest}`;
+      router.push(paymentUrl);
     } catch (err) {
-      console.error('Seat selection error:', err);
-      setError('Koltuk seçimi sırasında bir hata oluştu: ' + err.message);
+      console.error('Select-Seat: Seat selection error:', err);
+      alert(err.message || 'Koltuk seçimi sırasında bir hata oluştu.');
+      setSelectedSeats([]);
+    } finally {
       setLockingSeats(false);
     }
   };
@@ -343,12 +445,12 @@ export default function SeatSelection() {
         <div className="text-center space-y-4">
           <p className="text-red-400">{error}</p>
           <motion.button
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/tickets/select-type')}
             className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-full font-semibold"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            Ana Sayfaya Dön
+            Bilet Seçimine Geri Dön
           </motion.button>
         </div>
       </div>
@@ -400,7 +502,7 @@ export default function SeatSelection() {
             >
               <span className="text-purple-300 font-bold">{ticketCount}</span> koltuk seçin
               <span className="mx-2">•</span>
-              Kalan süre: 
+              Kalan süre:
               <span className={`ml-1 font-bold ${timeLeft < 60 ? 'text-red-400' : 'text-green-400'}`}>
                 {formatTime(timeLeft)}
               </span>
@@ -437,18 +539,18 @@ export default function SeatSelection() {
                       let seatState = 'available';
                       let tooltip = 'Boş Koltuk';
 
-                      if (seat.occupied) {
-                        if (seat.booked) {
-                          seatState = 'booked';
-                          tooltip = 'Dolu: Rezerve Edildi';
-                        } else {
-                          seatState = 'locked';
-                          tooltip = 'Kilitli: Başka Kullanıcı Seçti';
-                        }
+                      if (seat.booked) {
+                        seatState = 'booked';
+                        tooltip = 'Dolu: Rezerve Edildi';
+                      } else if (seat.occupied && !seat.booked) {
+                        seatState = 'locked';
+                        tooltip = 'Kilitli: Başka Kullanıcı Seçti';
                       } else if (isSelected) {
                         seatState = 'selected';
                         tooltip = 'Seçilen Koltuk';
                       }
+
+                      console.log(`Select-Seat: Rendering seat ${seat.id}: state=${seatState}, isSelected=${isSelected}`);
 
                       const isDisabled = seatState === 'booked' || seatState === 'locked';
 
@@ -536,7 +638,7 @@ export default function SeatSelection() {
                               className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             />
                             <input
-                              type="phoneNumber"
+                              type="tel"
                               placeholder="Telefon Numarası"
                               value={guestInfo.phoneNumber}
                               onChange={(e) => setGuestInfo({ ...guestInfo, phoneNumber: e.target.value })}
@@ -547,8 +649,9 @@ export default function SeatSelection() {
                         <Button
                           className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-6 text-base font-bold shadow-lg hover:shadow-purple-500/40 mt-4"
                           onClick={handleContinue}
+                          disabled={lockingSeats}
                         >
-                          Ödemeye Geç
+                          {lockingSeats ? 'İşleniyor...' : 'Ödemeye Geç'}
                         </Button>
                       </CardContent>
                     </Card>
