@@ -71,8 +71,9 @@ export default function CinemaSelector() {
     fetchCinemas();
   }, [movieId]);
 
-  const handleSelect = (cinemaId, hallId) => {
-    router.push(`/tickets/select-type?movie=${movieId}&cinema=${cinemaId}${hallId ? `&hall=${hallId}` : ''}`);
+  const handleSelect = (cinemaId, hallId, showtime) => {
+    const encodedShowtime = encodeURIComponent(showtime);
+    router.push(`/tickets/select-type?movie=${movieId}&cinema=${cinemaId}${hallId ? `&hall=${hallId}` : ''}&showtime=${encodedShowtime}`);
   };
 
   const openGoogleMaps = (e, mapLink, name, location) => {
@@ -143,6 +144,7 @@ export default function CinemaSelector() {
       <div className="fixed inset-0 z-[-2]">
         <motion.div
           className="absolute inset-0 bg-gradient-to-br from-[#0d0d1a] to-[#1a1a2e] opacity-80"
+ W
           animate={{ y: [0, -20, 0] }}
           transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
         />
@@ -246,7 +248,7 @@ export default function CinemaSelector() {
                 Sinema bulunamadı
               </h3>
               <p className="text-gray-300">
-                Bu film için şu anda gösterim yapan sinema bulunmuyor
+                Bu büyük bir olasılıkla gösterim yapan sinema bulunmuyor
               </p>
             </motion.div>
           ) : (
@@ -254,7 +256,7 @@ export default function CinemaSelector() {
               {cinemaOptions.map((cinema, index) => (
                 <motion.button
                   key={cinema.uniqueKey}
-                  onClick={() => handleSelect(cinema.id, cinema.hallId)}
+                  onClick={() => handleSelect(cinema.id, cinema.hallId, cinema.showtime)}
                   className="relative bg-gray-900/40 backdrop-blur-xl rounded-2xl p-6 border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 shadow-xl hover:shadow-purple-500/40 overflow-hidden card-3d"
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
