@@ -21,6 +21,7 @@ const UpdateInfoPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const [notification, setNotification] = useState({ message: '', type: '' });
 
   // Tarih formatlayıcı (timestamp ya da string destekler)
   const formatDate = (timestamp) => {
@@ -81,7 +82,7 @@ const UpdateInfoPage = () => {
 
     if (!user) {
       setLoading(false);
-      setError('Kullanıcı bulunamadı.');
+      setNotification({ message: 'Kullanıcı bulunamadı.', type: 'error' });
       return;
     }
 
@@ -96,14 +97,31 @@ const UpdateInfoPage = () => {
         gender: userInfo.gender,
       });
 
-      alert('Bilgileriniz başarıyla güncellendi!');
+      setNotification({ message: 'Bilgileriniz başarıyla güncellendi!', type: 'success' });
     } catch (err) {
       console.error('Güncelleme hatası:', err);
-      setError('Bilgiler güncellenirken bir hata oluştu.');
+      setNotification({ message: 'Bilgiler güncellenirken bir hata oluştu.', type: 'error' });
     } finally {
       setLoading(false);
     }
   };
+
+  const handleNotificationClose = () => {
+    setNotification({ message: '', type: '' });
+    if (notification.type === 'success') {
+      router.push('/account');
+    }
+  };
+
+  useEffect(() => {
+    if (notification.message && notification.type === 'success') {
+      const timer = setTimeout(() => {
+        setNotification({ message: '', type: '' });
+        router.push('/account');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification, router]);
 
   return (
     <div className="min-h-screen bg-[#0d0d1a] text-white px-4 sm:px-6 py-12 overflow-hidden relative">
@@ -162,20 +180,6 @@ const UpdateInfoPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <AnimatePresence>
-            {error && (
-              <motion.p
-                className="text-center p-4 rounded-lg bg-red-900/40 text-red-300 border border-red-700/50"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                {error}
-              </motion.p>
-            )}
-          </AnimatePresence>
-
           <div>
             <label htmlFor="firstName" className="block text-sm font-medium text-gray-200">İsim</label>
             <input
@@ -298,6 +302,59 @@ const UpdateInfoPage = () => {
             </button>
           </motion.div>
         </motion.form>
+
+        <AnimatePresence>
+          {notification.message && (
+            <motion.div
+              className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-6 rounded-2xl shadow-2xl backdrop-blur-lg border border-purple-500/30 max-w-sm w-full z-[2000] ${
+                notification.type === 'success'
+                  ? 'bg-gradient-to-r from-green-600/80 to-emerald-600/80'
+                  : 'bg-gradient-to-r from-red-600/80 to-red-800/80'
+              }`}
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 20 }}
+              transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 20 }}
+            >
+              <div className="flex items-center gap-4">
+                {notification.type === 'success' ? (
+                  <motion.svg
+                    className="w-8 h-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </motion.svg>
+                ) : (
+                  <motion.svg
+                    className="w-8 h-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </motion.svg>
+                )}
+                <span className="text-lg font-medium text-white">{notification.message}</span>
+              </div>
+              <motion.button
+                onClick={handleNotificationClose}
+                className="absolute top-2 right-2 text-white hover:text-gray-200"
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                ✕
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
