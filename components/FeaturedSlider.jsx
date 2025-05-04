@@ -18,6 +18,16 @@ export default function FeaturedSlider() {
   const iframeRef = useRef(null);
   const swiperRef = useRef(null);
 
+  // Toggle body class to hide header during trailer playback
+  useEffect(() => {
+    if (isFullScreenVideo) {
+      document.body.classList.add('hide-header');
+    } else {
+      document.body.classList.remove('hide-header');
+    }
+    return () => document.body.classList.remove('hide-header');
+  }, [isFullScreenVideo]);
+
   useEffect(() => {
     const fetchMovies = async () => {
       const query = await getDocs(collection(db, "films"));
@@ -115,7 +125,7 @@ export default function FeaturedSlider() {
 
   if (!movies.length) return null;
 
-  // Tek film varsa, statik bir görünüm göster
+  // Single movie case
   if (movies.length === 1) {
     const movie = movies[0];
     const embedUrl = getEmbedUrl(movie.trailerUrl);
@@ -170,52 +180,55 @@ export default function FeaturedSlider() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
           </motion.div>
 
-          {isFullScreenVideo && (
-            <motion.div
-              className="fixed inset-0 w-screen h-screen z-50"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="absolute inset-0 bg-black">
-                <iframe
-                  ref={iframeRef}
-                  src={`${embedUrl}?autoplay=1&enablejsapi=1`}
-                  title={movie.title}
-                  className="w-full h-full object-cover"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
-              </div>
-              <motion.button
-                className="absolute top-6 right-6 bg-black/70 text-white p-3 rounded-full cursor-pointer z-60 hover:bg-black/90 transition-all duration-300"
+          <AnimatePresence>
+            {isFullScreenVideo && (
+              <motion.div
+                className="fixed inset-0 w-screen h-screen z-[100] bg-black/80"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                whileHover={{ scale: 1.1 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsFullScreenVideo(false);
-                }}
-                aria-label="Close trailer"
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+                <div className="absolute inset-0">
+                  <iframe
+                    ref={iframeRef}
+                    src={`${embedUrl}?autoplay=1&enablejsapi=1`}
+                    title={movie.title}
+                    className="w-full h-full object-cover"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+                <motion.button
+                  className="absolute top-4 right-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-full cursor-pointer z-[101] shadow-lg hover:shadow-purple-500/50 transition-all duration-300 border-2 border-white/30"
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsFullScreenVideo(false);
+                  }}
+                  aria-label="Close trailer"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </motion.button>
-            </motion.div>
-          )}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-8 w-8"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {!isFullScreenVideo && (
             <motion.div
@@ -349,6 +362,7 @@ export default function FeaturedSlider() {
     );
   }
 
+  // Multiple movies case
   return (
     <section className="relative bg-[#0d0d1a] text-white py-8 overflow-hidden">
       <div className="relative">
@@ -429,52 +443,55 @@ export default function FeaturedSlider() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
                   </motion.div>
 
-                  {isFullScreenVideo && selectedIndex === index && (
-                    <motion.div
-                      className="fixed inset-0 w-screen h-screen z-50"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <div className="absolute inset-0 bg-black">
-                        <iframe
-                          ref={iframeRef}
-                          src={`${embedUrl}?autoplay=1&enablejsapi=1`}
-                          title={movie.title}
-                          className="w-full h-full object-cover"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        ></iframe>
-                      </div>
-                      <motion.button
-                        className="absolute top-6 right-6 bg-black/70 text-white p-3 rounded-full cursor-pointer z-60 hover:bg-black/90 transition-all duration-300"
+                  <AnimatePresence>
+                    {isFullScreenVideo && selectedIndex === index && (
+                      <motion.div
+                        className="fixed inset-0 w-screen h-screen z-[100] bg-black/80"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        whileHover={{ scale: 1.1 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsFullScreenVideo(false);
-                        }}
-                        aria-label="Close trailer"
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.5 }}
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-6 w-6"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
+                        <div className="absolute inset-0">
+                          <iframe
+                            ref={iframeRef}
+                            src={`${embedUrl}?autoplay=1&enablejsapi=1`}
+                            title={movie.title}
+                            className="w-full h-full object-cover"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          ></iframe>
+                        </div>
+                        <motion.button
+                          className="absolute top-4 right-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-full cursor-pointer z-[101] shadow-lg hover:shadow-purple-500/50 transition-all duration-300 border-2 border-white/30"
+                          initial={{ opacity: 0, scale: 0 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          whileHover={{ scale: 1.1, rotate: 90 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsFullScreenVideo(false);
+                          }}
+                          aria-label="Close trailer"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </motion.button>
-                    </motion.div>
-                  )}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-8 w-8"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </motion.button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {!isFullScreenVideo && (
                     <motion.div
@@ -609,7 +626,7 @@ export default function FeaturedSlider() {
           })}
         </Swiper>
 
-        {/* Özel geçiş okları - GÜNCELLENMİŞ TASARIM */}
+        {/* Custom navigation arrows */}
         <div className="swiper-button-prev !hidden md:!flex">
           <div className="relative w-14 h-14 flex items-center justify-center">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-indigo-800 rounded-full opacity-90 hover:opacity-100 transition-all duration-300 shadow-lg hover:shadow-purple-500/40"></div>
@@ -646,6 +663,11 @@ export default function FeaturedSlider() {
 
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+
+        /* Hide header when trailer is playing */
+        body.hide-header .custom-header {
+          display: none;
+        }
 
         .swiper-pagination-bullet {
           width: 12px;
