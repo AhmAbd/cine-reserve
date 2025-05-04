@@ -611,7 +611,7 @@ export default function MovieDetailPage() {
                                 </p>
                               </div>
                               <Link
-                                href={`/tickets/select-type?movie=${slug}&cinema=${cinema.id}`}
+                                href={`/tickets?movie=${movie.id}`}
                                 className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-purple-500/20 flex items-center justify-center gap-2"
                               >
                                 <svg
