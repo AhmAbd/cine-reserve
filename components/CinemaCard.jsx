@@ -23,19 +23,6 @@ const CinemaCard = ({ cinema, isHovered }) => {
           {cinema.name}
         </motion.h3>
 
-        <motion.p
-          className="text-gray-400 text-sm"
-          animate={{ opacity: isHovered ? 0.9 : 0.7 }}
-          style={{
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
-          {cinema.location}
-        </motion.p>
-
         {/* Hover effect indicator */}
         <motion.div
           className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-600 to-indigo-600"
