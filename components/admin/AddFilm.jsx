@@ -240,7 +240,7 @@ export default function AddFilm() {
             { value: genre, set: setGenre, placeholder: 'Tür*', required: true },
             { value: duration, set: setDuration, placeholder: 'Süre (dk)*', type: 'number', required: true },
             { value: releaseDate, set: setReleaseDate, placeholder: 'Vizyon Tarihi*', type: 'date', required: true },
-            { value: rating, set: setRating, placeholder: 'Puan (IMDB vb.)' },
+            { value: rating, set: setRating, placeholder: 'Yaş Sınırı' },
             { value: language, set: setLanguage, placeholder: 'Dil*', required: true },
             { value: director, set: setDirector, placeholder: 'Yönetmen*', required: true },
             { value: cast, set: setCast, placeholder: 'Oyuncular (virgülle ayırın)' },
