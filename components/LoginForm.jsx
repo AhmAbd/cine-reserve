@@ -1,22 +1,29 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { signInWithEmailAndPassword, getAuth } from 'firebase/auth';
-import { auth, db } from '../lib/firebase';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { doc, getDoc } from 'firebase/firestore';
-import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
-import { FiLock, FiUser, FiMail, FiKey, FiShield, FiLogIn } from 'react-icons/fi';
+import { useState, useEffect, useMemo } from "react";
+import { signInWithEmailAndPassword, getAuth } from "firebase/auth";
+import { auth, db } from "../lib/firebase";
+import { useRouter, useSearchParams } from "next/navigation";
+import { doc, getDoc } from "firebase/firestore";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import {
+  FiLock,
+  FiUser,
+  FiMail,
+  FiKey,
+  FiShield,
+  FiLogIn,
+} from "react-icons/fi";
 
 // Security icons configuration
 const securityIcons = [
-  { icon: <FiLock />, name: 'lock', size: 24 },
-  { icon: <FiUser />, name: 'user', size: 28 },
-  { icon: <FiMail />, name: 'mail', size: 22 },
-  { icon: <FiKey />, name: 'key', size: 26 },
-  { icon: <FiShield />, name: 'shield', size: 30 },
-  { icon: <FiLogIn />, name: 'login', size: 32 },
+  { icon: <FiLock />, name: "lock", size: 24 },
+  { icon: <FiUser />, name: "user", size: 28 },
+  { icon: <FiMail />, name: "mail", size: 22 },
+  { icon: <FiKey />, name: "key", size: 26 },
+  { icon: <FiShield />, name: "shield", size: 30 },
+  { icon: <FiLogIn />, name: "login", size: 32 },
 ];
 
 // Floating icons configuration
@@ -62,57 +69,65 @@ const AnimatedLink = ({ href, children, className }) => {
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [dimensions, setDimensions] = useState({ width: 1920, height: 1080 });
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get('redirect') || '/';
+  const redirectUrl = searchParams.get("redirect") || "/";
 
   useEffect(() => {
-    console.log('Login component mounted. Redirect URL:', decodeURIComponent(redirectUrl));
+    console.log(
+      "Login component mounted. Redirect URL:",
+      decodeURIComponent(redirectUrl)
+    );
     const auth = getAuth();
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      console.log('Auth state changed:', user ? user.uid : 'No user');
+      console.log("Auth state changed:", user ? user.uid : "No user");
       if (user) {
-        console.log('Checking user suspension for:', user.uid);
-        const userRef = doc(db, 'users', user.uid);
+        console.log("Checking user suspension for:", user.uid);
+        const userRef = doc(db, "users", user.uid);
         getDoc(userRef)
           .then((userDoc) => {
             if (userDoc.exists() && !userDoc.data().suspended) {
-              console.log('User is not suspended. Redirecting to:', decodeURIComponent(redirectUrl));
+              console.log(
+                "User is not suspended. Redirecting to:",
+                decodeURIComponent(redirectUrl)
+              );
               setIsRedirecting(true);
               router.replace(decodeURIComponent(redirectUrl));
             } else {
-              console.log('User is suspended or doc does not exist');
-              setError('Hesabınız askıya alınmış. Lütfen destek ile iletişime geçin.');
+              console.log("User is suspended or doc does not exist");
+              setError(
+                "Hesabınız askıya alınmış. Lütfen destek ile iletişime geçin."
+              );
               auth.signOut();
             }
           })
           .catch((err) => {
-            console.error('Error fetching user doc:', err);
-            setError('Kullanıcı bilgileri alınamadı.');
+            console.error("Error fetching user doc:", err);
+            setError("Kullanıcı bilgileri alınamadı.");
             auth.signOut();
           });
       }
     });
     return () => {
-      console.log('Cleaning up auth listener');
+      console.log("Cleaning up auth listener");
       unsubscribe();
     };
   }, [router, redirectUrl]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       setDimensions({ width: window.innerWidth, height: window.innerHeight });
       const handleResize = () => {
         setDimensions({ width: window.innerWidth, height: window.innerHeight });
       };
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
     }
   }, []);
 
@@ -126,21 +141,24 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     try {
-      console.log('Attempting login with email:', email);
+      console.log("Attempting login with email:", email);
       await signInWithEmailAndPassword(auth, email, password);
-      console.log('Login successful');
+      console.log("Login successful");
       // onAuthStateChanged will handle redirect
     } catch (err) {
-      console.error('Firebase login error:', err);
-      setError('E-posta veya şifre hatalı!');
+      console.error("Firebase login error:", err);
+      setError("E-posta veya şifre hatalı!");
     }
   };
 
   const handleContinueWithoutLogin = () => {
-    console.log('Continuing without login. Redirecting to:', decodeURIComponent(redirectUrl));
+    console.log(
+      "Continuing without login. Redirecting to:",
+      decodeURIComponent(redirectUrl)
+    );
     setIsRedirecting(true);
     router.replace(decodeURIComponent(redirectUrl));
   };
@@ -160,7 +178,10 @@ const Login = () => {
       </AnimatePresence>
 
       {/* 3D Particle Background */}
-      <div className="absolute inset-0 pointer-events-none z-0" style={{ perspective: 1000 }}>
+      <div
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{ perspective: 1000 }}
+      >
         {particles.map((particle) => (
           <motion.div
             key={particle.id}
@@ -181,14 +202,17 @@ const Login = () => {
             transition={{
               duration: Math.random() * 12 + 6,
               repeat: Infinity,
-              ease: 'easeInOut',
+              ease: "easeInOut",
             }}
           />
         ))}
       </div>
 
       {/* 3D Floating Security Icons Background */}
-      <div className="absolute inset-0 pointer-events-none z-5" style={{ perspective: 500 }}>
+      <div
+        className="absolute inset-0 pointer-events-none z-5"
+        style={{ perspective: 500 }}
+      >
         {floatingIcons.map((icon) => (
           <motion.div
             key={icon.id}
@@ -209,12 +233,12 @@ const Login = () => {
               duration: icon.duration,
               delay: icon.delay,
               repeat: Infinity,
-              ease: 'easeInOut',
+              ease: "easeInOut",
             }}
             whileHover={{
               opacity: 1,
               scale: 1.5,
-              textShadow: '0 0 10px rgba(168, 85, 247, 0.8)',
+              textShadow: "0 0 10px rgba(168, 85, 247, 0.8)",
               transition: { duration: 0.3 },
             }}
           >
@@ -228,12 +252,12 @@ const Login = () => {
         className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black pointer-events-none z-0"
         animate={{
           background: [
-            'linear-gradient(135deg, #0a0a0a 0%, #1f1f1f 50%, #0a0a0a 100%)',
-            'linear-gradient(135deg, #0a0a0a 0%, #2d1a4b 50%, #0a0a0a 100%)',
-            'linear-gradient(135deg, #0a0a0a 0%, #1f1f1f 50%, #0a0a0a 100%)',
+            "linear-gradient(135deg, #0a0a0a 0%, #1f1f1f 50%, #0a0a0a 100%)",
+            "linear-gradient(135deg, #0a0a0a 0%, #2d1a4b 50%, #0a0a0a 100%)",
+            "linear-gradient(135deg, #0a0a0a 0%, #1f1f1f 50%, #0a0a0a 100%)",
           ],
         }}
-        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
       />
 
       {/* 3D Form Container */}
@@ -246,7 +270,7 @@ const Login = () => {
           rotateY: mousePos.x * 15,
           rotateX: -mousePos.y * 15,
         }}
-        transition={{ duration: 0.8, type: 'spring', stiffness: 100 }}
+        transition={{ duration: 0.8, type: "spring", stiffness: 100 }}
         onSubmit={handleSubmit}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setMousePos({ x: 0, y: 0 })}
@@ -260,7 +284,7 @@ const Login = () => {
             initial={{ scale: 0, rotateX: -90 }}
             animate={{ scale: 1, rotateX: 0 }}
             whileHover={{ scale: 1.2, rotateY: 360, translateZ: 20 }}
-            transition={{ duration: 0.6, type: 'spring', stiffness: 200 }}
+            transition={{ duration: 0.6, type: "spring", stiffness: 200 }}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -280,7 +304,9 @@ const Login = () => {
           <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-2">
             Giriş Yap
           </h1>
-          <p className="text-gray-400 text-sm">Hesabınıza erişmek için giriş yapın</p>
+          <p className="text-gray-400 text-sm">
+            Hesabınıza erişmek için giriş yapın
+          </p>
         </div>
 
         {/* Error Message */}
@@ -299,7 +325,9 @@ const Login = () => {
 
         {/* Email Input */}
         <div className="relative mb-6">
-          <label className="block text-sm font-medium text-gray-300 mb-2">E-posta Adresi</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            E-posta Adresi
+          </label>
           <motion.input
             type="email"
             value={email}
@@ -308,8 +336,8 @@ const Login = () => {
             placeholder="email@example.com"
             required
             whileFocus={{
-              borderColor: '#a855f7',
-              boxShadow: '0 0 10px rgba(168, 85, 247, 0.5)',
+              borderColor: "#a855f7",
+              boxShadow: "0 0 10px rgba(168, 85, 247, 0.5)",
               scale: 1.01,
               rotateX: 5,
               translateZ: 10,
@@ -320,18 +348,20 @@ const Login = () => {
 
         {/* Password Input */}
         <div className="relative mb-6">
-          <label className="block text-sm font-medium text-gray-300 mb-2">Şifre</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Şifre
+          </label>
           <div className="relative">
             <motion.input
-              type={showPassword ? 'text' : 'password'}
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 pr-20 bg-gray-800/30 border border-gray-700/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-inner"
               placeholder="••••••••"
               required
               whileFocus={{
-                borderColor: '#a855f7',
-                boxShadow: '0 0 10px rgba(168, 85, 247, 0.5)',
+                borderColor: "#a855f7",
+                boxShadow: "0 0 10px rgba(168, 85, 247, 0.5)",
                 scale: 1.01,
                 rotateX: 5,
                 translateZ: 10,
@@ -341,11 +371,16 @@ const Login = () => {
             <motion.button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-purple-400 bg-gray-800/50 px-4 py-2 rounded-md"
-              whileHover={{ backgroundColor: 'rgba(46, 16, 101, 0.5)', scale: 1.05, translateZ: 10 }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-purple-900 bg-gray-800/50 px-4 py-2 rounded-md"
+              whileHover={{
+                backgroundColor:
+                  "background-color: oklab(0.278 -0.00750866 -0.0321344 / 0.5);",
+                scale: 1.05,
+                translateZ: 10,
+              }}
               whileTap={{ scale: 0.95 }}
             >
-              {showPassword ? 'Gizle' : 'Göster'}
+              {showPassword ? "Gizle" : "Göster"}
             </motion.button>
           </div>
         </div>
@@ -372,21 +407,21 @@ const Login = () => {
           className="relative w-full py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-lg font-semibold overflow-hidden"
           whileHover={{
             scale: 1.05,
-            boxShadow: '0 0 20px rgba(192, 132, 252, 0.6)',
+            boxShadow: "0 0 20px rgba(192, 132, 252, 0.6)",
             rotateX: 10,
             translateZ: 20,
           }}
           whileTap={{
             scale: 0.95,
-            boxShadow: '0 0 10px rgba(192, 132, 252, 0.3)',
+            boxShadow: "0 0 10px rgba(192, 132, 252, 0.3)",
             rotateX: -10,
           }}
-          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           <motion.div
             className="absolute inset-0 bg-gradient-to-r from-purple-500/50 to-pink-500/50"
-            animate={{ x: ['-100%', '100%'] }}
-            transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
+            animate={{ x: ["-100%", "100%"] }}
+            transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
           />
           <span className="relative z-10">Giriş Yap</span>
         </motion.button>
@@ -398,24 +433,24 @@ const Login = () => {
           className="relative w-full py-3 mt-4 bg-gray-800/50 border border-purple-500/30 text-white rounded-lg font-semibold"
           whileHover={{
             scale: 1.05,
-            backgroundColor: 'rgba(46, 16, 101, 0.5)',
-            borderColor: '#a855f7',
+            backgroundColor: "rgba(46, 16, 101, 0.5)",
+            borderColor: "#a855f7",
             rotateX: 10,
             translateZ: 20,
           }}
           whileTap={{
             scale: 0.95,
-            boxShadow: '0 0 10px rgba(192, 132, 252, 0.3)',
+            boxShadow: "0 0 10px rgba(192, 132, 252, 0.3)",
             rotateX: -10,
           }}
-          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           Giriş Yapmadan Devam Et
         </motion.button>
 
         {/* Register Link */}
         <p className="text-sm text-center mt-6 text-gray-400">
-          Henüz üye değil misiniz?{' '}
+          Henüz üye değil misiniz?{" "}
           <AnimatedLink href="/register" className="px-3 py-2">
             Üye Ol
           </AnimatedLink>
