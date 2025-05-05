@@ -190,7 +190,6 @@ export default function ClientLayout({ children }) {
             <button
               className="md:hidden text-white focus:outline-none"
               onClick={toggleMenu}
-              aria-label="Toggle menu"
             >
               <motion.svg
                 className="w-8 h-8"
@@ -219,119 +218,107 @@ export default function ClientLayout({ children }) {
             </button>
           </div>
 
-          {/* Mobile Menu (Sidebar) */}
+          {/* Mobile Menu */}
           <AnimatePresence>
             {isMenuOpen && (
-              <>
-                {/* Overlay */}
-                <motion.div
-                  className="fixed inset-0 bg-black/50 md:hidden z-40"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.5 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  onClick={toggleMenu}
-                />
-                {/* Sidebar */}
-                <motion.nav
-                  className="fixed top-0 right-0 w-4/5 max-w-xs h-full bg-gray-900/95 backdrop-blur-lg shadow-lg border-l border-purple-600/30 md:hidden z-50"
-                  initial={{ x: '100%' }}
-                  animate={{ x: 0 }}
-                  exit={{ x: '100%' }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                >
-                  <div className="flex flex-col items-center py-6 gap-6">
-                    <Link href="/movies" onClick={() => setIsMenuOpen(false)}>
-                      <motion.span
-                        className="text-gray-300 font-medium hover:text-purple-400 text-lg"
-                        whileHover={{ x: 5, color: '#c084fc' }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        Filmler
-                      </motion.span>
-                    </Link>
-                    <Link href="/cinemas" onClick={() => setIsMenuOpen(false)}>
-                      <motion.span
-                        className="text-gray-300 font-medium hover:text-purple-400 text-lg"
-                        whileHover={{ x: 5, color: '#c084fc' }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        Sinemalar
-                      </motion.span>
-                    </Link>
-                    <Link href="/bilet-sorgula" onClick={() => setIsMenuOpen(false)}>
-                      <motion.span
-                        className="text-gray-300 font-medium hover:text-purple-400 text-lg"
-                        whileHover={{ x: 5, color: '#c084fc' }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        Bilet Sorgula
-                      </motion.span>
-                    </Link>
-                    {user ? (
-                      <>
-                        <Link href="/account" onClick={() => setIsMenuOpen(false)}>
-                          <motion.span
-                            className="text-gray-300 font-medium hover:text-purple-400 text-lg"
-                            whileHover={{ x: 5, color: '#c084fc' }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            Hesabım
-                          </motion.span>
-                        </Link>
-                        <motion.button
-                          onClick={handleLogout}
-                          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-medium text-lg flex items-center gap-2"
-                          whileHover={{
-                            scale: 1.05,
-                            boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)',
-                          }}
-                          whileTap={{ scale: 0.95 }}
+              <motion.nav
+                className="md:hidden bg-gray-900/95 backdrop-blur-lg border-t border-purple-600/30"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+              >
+                <div className="flex flex-col items-center py-4 gap-4">
+                  <Link href="/movies" onClick={() => setIsMenuOpen(false)}>
+                    <motion.span
+                      className="text-gray-300 font-medium hover:text-purple-400 text-lg"
+                      whileHover={{ y: -2, color: '#c084fc' }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      Filmler
+                    </motion.span>
+                  </Link>
+                  <Link href="/cinemas" onClick={() => setIsMenuOpen(false)}>
+                    <motion.span
+                      className="text-gray-300 font-medium hover:text-purple-400 text-lg"
+                      whileHover={{ y: -2, color: '#c084fc' }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      Sinemalar
+                    </motion.span>
+                  </Link>
+                  <Link href="/bilet-sorgula" onClick={() => setIsMenuOpen(false)}>
+                    <motion.span
+                      className="text-gray-300 font-medium hover:text-purple-400 text-lg"
+                      whileHover={{ y: -2, color: '#c084fc' }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      Bilet Sorgula
+                    </motion.span>
+                  </Link>
+                  {user ? (
+                    <>
+                      <Link href="/account" onClick={() => setIsMenuOpen(false)}>
+                        <motion.span
+                          className="text-gray-300 font-medium hover:text-purple-400 text-lg"
+                          whileHover={{ y: -2, color: '#c084fc' }}
+                          transition={{ duration: 0.3 }}
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          Çıkış Yap
-                        </motion.button>
-                      </>
-                    ) : (
-                      <Link href="/login" onClick={() => setIsMenuOpen(false)}>
-                        <motion.div
-                          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-medium text-lg flex items-center gap-2"
-                          whileHover={{
-                            scale: 1.05,
-                            boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)',
-                          }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M3 3a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V3zm10.293 4.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L10 8.586l2.293-2.293z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          Giriş Yap / Kayıt Ol
-                        </motion.div>
+                          Hesabım
+                        </motion.span>
                       </Link>
-                    )}
-                  </div>
-                </motion.nav>
-              </>
+                      <motion.button
+                        onClick={handleLogout}
+                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-medium text-lg flex items-center gap-2"
+                        whileHover={{
+                          scale: 1.05,
+                          boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)',
+                        }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Çıkış Yap
+                      </motion.button>
+                    </>
+                  ) : (
+                    <Link href="/login" onClick={() => setIsMenuOpen(false)}>
+                      <motion.div
+                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-medium text-lg flex items-center gap-2"
+                        whileHover={{
+                          scale: 1.05,
+                          boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)',
+                        }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M3 3a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V3zm10.293 4.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L10 8.586l2.293-2.293z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Giriş Yap / Kayıt Ol
+                      </motion.div>
+                    </Link>
+                  )}
+                </div>
+              </motion.nav>
             )}
           </AnimatePresence>
         </motion.header>
