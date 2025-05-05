@@ -92,6 +92,7 @@ export default function SeatSelection() {
   const fullCount = parseInt(searchParams.get('full') || '0');
   const studentCount = parseInt(searchParams.get('student') || '0');
   const sessionTime = searchParams.get('session');
+  const hall = searchParams.get('hall');
   const isGuest = searchParams.get('guest') === 'true';
   const ticketCount = fullCount + studentCount;
 
@@ -103,6 +104,7 @@ export default function SeatSelection() {
   const [guestInfo, setGuestInfo] = useState({ fullName: '', email: '', phoneNumber: '' });
   const [user, setUser] = useState(null);
   const [lockingSeats, setLockingSeats] = useState(false);
+  const [prices, setPrices] = useState({ full: 195, student: 180 }); // Varsayılan fiyatlar
   const seatDocId = `${movieId}_${cinemaId}_${encodeURIComponent(sessionTime || '')}`;
 
   useEffect(() => {
@@ -113,22 +115,24 @@ export default function SeatSelection() {
       cinemaId,
       bookingId,
       sessionTime,
+      hall,
       fullCount,
       studentCount,
       isGuest,
       seatDocId,
     });
 
-    if (!bookingId || !sessionTime || !movieId || !cinemaId) {
+    if (!bookingId || !sessionTime || !movieId || !cinemaId || !hall) {
       console.error('Select-Seat: Critical parameters missing:', {
         bookingId,
         sessionTime,
+        hall,
         movieId,
         cinemaId,
       });
-      setError('Rezervasyon bilgileri eksik: Film, sinema, rezervasyon kimliği veya seans bilgisi eksik.');
+      setError('Rezervasyon bilgileri eksik: Film, sinema, rezervasyon kimliği, seans veya salon bilgisi eksik.');
       setLoading(false);
-      router.push(`/tickets/select-type?movie=${movieId || ''}&cinema=${cinemaId || ''}`);
+      router.push(`/tickets/select-type?movie=${movieId || ''}&cinema=${cinemaId || ''}&hall=${hall || ''}&showtime=${sessionTime || ''}`);
       return;
     }
 
@@ -136,7 +140,31 @@ export default function SeatSelection() {
       setUser(currentUser);
     });
     return () => unsubscribe();
-  }, [searchParams, movieId, cinemaId, bookingId, sessionTime, router]);
+  }, [searchParams, movieId, cinemaId, bookingId, sessionTime, hall, router]);
+
+  // Fetch prices from Firebase
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const priceDocRef = doc(db, 'prices', 'ticketTypes');
+        const priceDoc = await getDoc(priceDocRef);
+        if (priceDoc.exists()) {
+          const priceData = priceDoc.data();
+          setPrices({
+            full: priceData.full || 195,
+            student: priceData.student || 180,
+          });
+          console.log('Select-Seat: Fetched prices=', priceData);
+        } else {
+          console.warn('Select-Seat: No price data found, using defaults');
+        }
+      } catch (err) {
+        console.error('Select-Seat: Error fetching prices:', err);
+        setError('Fiyat bilgileri yüklenirken hata oluştu: ' + err.message);
+      }
+    };
+    fetchPrices();
+  }, []);
 
   useEffect(() => {
     if (error) return;
@@ -202,7 +230,7 @@ export default function SeatSelection() {
     if (loading || error) return;
     if (timeLeft <= 0) {
       alert('Süre doldu! Lütfen koltuk seçimini yeniden yapın.');
-      router.replace(`/tickets/select-type?movie=${movieId}&cinema=${cinemaId}`);
+      router.replace(`/tickets/select-type?movie=${movieId}&cinema=${cinemaId}&hall=${hall}&showtime=${sessionTime}`);
       return;
     }
 
@@ -211,13 +239,13 @@ export default function SeatSelection() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, loading, error, router, movieId, cinemaId]);
+  }, [timeLeft, loading, error, router, movieId, cinemaId, hall, sessionTime]);
 
   useEffect(() => {
     let isNavigating = false;
 
     const cleanupSeats = async () => {
-      if (selectedSeats. length === 0 || isNavigating) {
+      if (selectedSeats.length === 0 || isNavigating) {
         console.log('Select-Seat: Cleanup skipped: no seats or navigating');
         return;
       }
@@ -278,7 +306,7 @@ export default function SeatSelection() {
     }, LOCK_TIMEOUT_MS);
 
     return () => {
-      isNavigating = true; // Prevent cleanup during navigation
+      isNavigating = true;
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearTimeout(timeout);
@@ -318,10 +346,10 @@ export default function SeatSelection() {
       return;
     }
 
-    if (!bookingId || !sessionTime) {
-      console.error('Select-Seat: Missing bookingId or sessionTime', { bookingId, sessionTime });
+    if (!bookingId || !sessionTime || !hall) {
+      console.error('Select-Seat: Missing bookingId, sessionTime, or hall', { bookingId, sessionTime, hall });
       alert('Rezervasyon bilgileri eksik. Lütfen tekrar deneyin.');
-      router.push(`/tickets/select-type?movie=${movieId || ''}&cinema=${cinemaId || ''}`);
+      router.push(`/tickets/select-type?movie=${movieId || ''}&cinema=${cinemaId || ''}&hall=${hall || ''}&showtime=${sessionTime || ''}`);
       return;
     }
 
@@ -354,6 +382,7 @@ export default function SeatSelection() {
         transaction.set(seatRef, { seats: updatedSeats, lockTimestamp: serverTimestamp() }, { merge: true });
 
         const ticketId = bookingId;
+        const totalPrice = fullCount * prices.full + studentCount * prices.student;
         const ticketData = {
           cinemaId,
           cinemaName: (await getDoc(doc(db, 'cinemas', cinemaId))).data()?.name || 'Sinema Adı Bilinmiyor',
@@ -361,10 +390,11 @@ export default function SeatSelection() {
           movieId,
           movieName: (await getDoc(doc(db, 'films', movieId))).data()?.title || 'Film Adı Bilinmiyor',
           session: sessionTime || 'Seans Bilinmiyor',
+          hall: hall || 'Salon Bilinmiyor',
           studentCount,
           seats: selectedSeats,
           timestamp: serverTimestamp(),
-          totalPrice: fullCount * 195 + studentCount * 150,
+          totalPrice,
           status: 'pending',
           bookingId,
         };
@@ -418,11 +448,12 @@ export default function SeatSelection() {
         ticketId: bookingId,
         bookingId,
         sessionTime,
+        hall,
         fullCount,
         studentCount,
         isGuest,
       });
-      const paymentUrl = `/tickets/payment?ticketId=${encodeURIComponent(bookingId)}&bookingId=${encodeURIComponent(bookingId)}&session=${encodeURIComponent(sessionTime)}&full=${fullCount}&student=${studentCount}&guest=${isGuest}`;
+      const paymentUrl = `/tickets/payment?ticketId=${encodeURIComponent(bookingId)}&bookingId=${encodeURIComponent(bookingId)}&session=${encodeURIComponent(sessionTime)}&hall=${encodeURIComponent(hall)}&full=${fullCount}&student=${studentCount}&guest=${isGuest}`;
       router.push(paymentUrl);
     } catch (err) {
       console.error('Select-Seat: Seat selection error:', err);
@@ -579,7 +610,7 @@ export default function SeatSelection() {
                 ))}
               </div>
 
-              <motion.div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+              <motion.div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0}} transition={{ delay: 0.4 }}>
                 {[
                   { state: 'selected', color: 'bg-purple-500', label: 'Seçilen' },
                   { state: 'available', color: 'bg-gray-500', label: 'Boş' },

@@ -14,6 +14,7 @@ import {
 import useRequireAuth from '../../hooks/useRequireAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
+import QRCode from 'react-qr-code';
 
 const TicketsPage = () => {
   const { user, loading: authLoading } = useRequireAuth();
@@ -35,10 +36,13 @@ const TicketsPage = () => {
         const fetchedTickets = await Promise.all(
           querySnapshot.docs.map(async (docSnapshot) => {
             const ticket = docSnapshot.data();
+            const ticketId = docSnapshot.id;
 
             // Film bilgilerini al
             let hallInfo = '—';
             let movieTitle = ticket.movieName || 'Film Bilinmiyor';
+            let cinemaLocation = 'Konum bulunamadı';
+            let sessionDisplay = '—';
 
             if (ticket.movieId) {
               const movieRef = doc(db, 'films', ticket.movieId);
@@ -48,26 +52,38 @@ const TicketsPage = () => {
                 const movieData = movieSnap.data();
                 movieTitle = movieData.title || movieTitle;
 
-                // İlgili sinema bilgisini bul
                 const cinemaInfo = movieData.cinemas?.find(
                   c => c.id === ticket.cinemaId
                 );
 
-                // Salon bilgisini al
                 if (cinemaInfo?.hallNumber) {
-                  hallInfo = `${cinemaInfo.hallNumber}`;
+                  hallInfo = cinemaInfo.hallNumber;
                 }
               }
             }
 
+            // Sinema konumunu al
+            if (ticket.cinemaId) {
+              try {
+                const cinemaRef = doc(db, 'cinemas', ticket.cinemaId);
+                const cinemaSnap = await getDoc(cinemaRef);
+
+                if (cinemaSnap.exists()) {
+                  const cinemaData = cinemaSnap.data();
+                  cinemaLocation = cinemaData.location || 'Konum bulunamadı';
+                }
+              } catch (err) {
+                console.warn('TicketsPage: Error fetching cinema data:', err.message);
+              }
+            }
+
             // Parse session time
-            let sessionDisplay = '—';
             if (ticket.session && typeof ticket.session === 'string') {
-              console.log('TicketsPage: Raw ticket.session=', ticket.session);
               const [datePart] = ticket.session.split('|');
               if (datePart) {
                 const sessionDate = new Date(datePart);
                 if (!isNaN(sessionDate.getTime())) {
+                  sessionDate.setHours(sessionDate.getHours() + 3); // Adjust for UTC+3
                   sessionDisplay = sessionDate.toLocaleString('tr-TR', {
                     dateStyle: 'medium',
                     timeStyle: 'short'
@@ -78,15 +94,39 @@ const TicketsPage = () => {
               } else {
                 console.warn('TicketsPage: Missing date part in session=', ticket.session);
               }
+            } else if (ticket.session?.toDate && typeof ticket.session.toDate === 'function') {
+              try {
+                const sessionDate = ticket.session.toDate();
+                sessionDate.setHours(sessionDate.getHours() + 3); // Adjust for UTC+3
+                sessionDisplay = sessionDate.toLocaleString('tr-TR', {
+                  dateStyle: 'medium',
+                  timeStyle: 'short'
+                });
+              } catch (err) {
+                console.warn('TicketsPage: Error parsing session timestamp:', err.message);
+              }
             } else {
               console.warn('TicketsPage: Invalid or missing session=', ticket.session);
             }
 
+            // Determine ticket class
+            let ticketClass = '—';
+            if (ticket.fullCount > 0 && ticket.studentCount > 0) {
+              ticketClass = 'Tam ve Öğrenci';
+            } else if (ticket.fullCount > 0) {
+              ticketClass = 'Tam';
+            } else if (ticket.studentCount > 0) {
+              ticketClass = 'Öğrenci';
+            }
+
             return {
               ...ticket,
+              id: ticketId,
               movieName: movieTitle,
               hallDisplay: hallInfo,
-              sessionDisplay
+              sessionDisplay,
+              cinemaLocation,
+              ticketClass
             };
           })
         );
@@ -216,43 +256,72 @@ const TicketsPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {tickets.map((ticket, index) => (
                 <motion.div
-                  key={index}
+                  key={ticket.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
                   <Tilt tiltMaxAngleX={5} tiltMaxAngleY={5} glareEnable={true} glareMaxOpacity={0.2} glareColor="#9333ea">
-                    <div className="bg-gradient-to-br from-gray-900/80 to-gray-800/80 rounded-xl p-6 space-y-4 border border-purple-500/30 shadow-xl hover:shadow-purple-500/20 transition-shadow duration-300">
-                      <div className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-400">
-                        🎬 {ticket.movieName}
+                    <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl p-6 shadow-xl border border-gray-300 flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                      {/* Ticket Details */}
+                      <div className="flex-1 text-gray-800">
+                        <div className="text-xl font-bold text-purple-600 mb-2">
+                          🎬 {ticket.movieName}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="font-medium text-gray-900">Sinema:</span> {ticket.cinemaName || '—'}
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900">Salon:</span> {ticket.hallDisplay}
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900">Seans:</span> {ticket.sessionDisplay}
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900">Koltuklar:</span> {ticket.seats?.length > 0 ? ticket.seats.join(', ') : '—'}
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900">Fiyat:</span> {ticket.totalPrice != null ? `${ticket.totalPrice} ₺` : '—'}
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900">Bilet Sınıfı:</span> {ticket.ticketClass}
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900">Bilet ID:</span> {ticket.id}
+                          </div>
+                        </div>
+                        <div className="mt-2 text-xs text-gray-600">
+                          Rezervasyon: {ticket.timestamp?.toDate
+                            ? ticket.timestamp.toDate().toLocaleString('tr-TR', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short'
+                              })
+                            : '—'}
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-300">
-                        <span className="font-medium text-white">Seans:</span>{' '}
-                        {ticket.sessionDisplay}
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        <span className="font-medium text-white">Sinema:</span>{' '}
-                        {ticket.cinemaName || '—'}
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        <span className="font-medium text-white">Salon:</span>{' '}
-                        {ticket.hallDisplay}
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        <span className="font-medium text-white">Koltuklar:</span>{' '}
-                        {ticket.seats?.length > 0 ? ticket.seats.join(', ') : '—'}
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        <span className="font-medium text-white">Rezervasyon Tarihi:</span>{' '}
-                        {ticket.timestamp?.toDate
-                          ? ticket.timestamp.toDate().toLocaleString('tr-TR', {
-                              dateStyle: 'medium',
-                              timeStyle: 'short'
-                            })
-                          : '—'}
-                      </div>
-                      <div className="text-lg font-bold text-green-400">
-                        Toplam: {ticket.totalPrice != null ? `${ticket.totalPrice} ₺` : '—'}
+                      {/* QR Codes */}
+                      <div className="flex flex-col space-y-4 items-center">
+                        <div className="text-center">
+                          <QRCode
+                            value={ticket.id}
+                            size={80}
+                            bgColor="#ffffff"
+                            fgColor="#000000"
+                            className="border-2 border-purple-500 rounded"
+                          />
+                          <p className="text-xs text-gray-700 mt-1">Bilet ID</p>
+                        </div>
+                        <div className="text-center">
+                          <QRCode
+                            value={ticket.cinemaLocation}
+                            size={80}
+                            bgColor="#ffffff"
+                            fgColor="#000000"
+                            className="border-2 border-purple-500 rounded"
+                          />
+                          <p className="text-xs text-gray-700 mt-1">Konum</p>
+                        </div>
                       </div>
                     </div>
                   </Tilt>

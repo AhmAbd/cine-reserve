@@ -12,10 +12,11 @@ export default function PaymentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const ticketId = searchParams.get('ticketId');
-  const full = parseInt(searchParams.get('full') || '0');
-  const student = parseInt(searchParams.get('student') || '0');
   const bookingId = searchParams.get('bookingId');
   const sessionTime = searchParams.get('session');
+  const hall = searchParams.get('hall');
+  const full = parseInt(searchParams.get('full') || '0');
+  const student = parseInt(searchParams.get('student') || '0');
   const isGuest = searchParams.get('guest') === 'true';
 
   const [ticketData, setTicketData] = useState(null);
@@ -26,12 +27,14 @@ export default function PaymentPage() {
   const [notification, setNotification] = useState({ message: '', type: '' });
   const [user, setUser] = useState(null);
   const [showtime, setShowtime] = useState(null);
+  const [prices, setPrices] = useState(null); // Varsayılan fiyatlar kaldırıldı
 
   useEffect(() => {
     console.log('Payment: Initial parameters:', {
       ticketId,
       bookingId,
       sessionTime,
+      hall,
       full,
       student,
       isGuest,
@@ -41,13 +44,43 @@ export default function PaymentPage() {
       setUser(currentUser);
     });
     return () => unsubscribe();
-  }, [ticketId, bookingId, sessionTime, full, student, isGuest]);
+  }, [ticketId, bookingId, sessionTime, hall, full, student, isGuest]);
+
+  // Fetch prices from Firebase
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const priceDocRef = doc(db, 'prices', 'ticketTypes');
+        const priceDoc = await getDoc(priceDocRef);
+        if (priceDoc.exists()) {
+          const priceData = priceDoc.data();
+          setPrices({
+            full: priceData.full,
+            student: priceData.student,
+          });
+          console.log('Payment: Fetched prices=', priceData);
+        } else {
+          console.error('Payment: Price document does not exist in Firebase');
+          setError('Fiyat bilgileri bulunamadı. Lütfen tekrar deneyin.');
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Payment: Error fetching prices:', err);
+        setError('Fiyat bilgileri yüklenirken hata oluştu: ' + err.message);
+        setLoading(false);
+      }
+    };
+    fetchPrices();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
+      // Fiyatlar yüklenene kadar bekle
+      if (!prices) return;
+
       try {
-        if (!ticketId) {
-          setError('Bilet kimliği eksik. Lütfen koltuk seçim adımından tekrar deneyin.');
+        if (!ticketId || !bookingId || !sessionTime || !hall) {
+          setError('Gerekli bilgiler eksik: Bilet kimliği, rezervasyon kimliği, seans veya salon bilgisi eksik.');
           setLoading(false);
           return;
         }
@@ -72,20 +105,7 @@ export default function PaymentPage() {
 
         const filmDoc = await getDoc(doc(db, 'films', ticket.movieId));
         if (filmDoc.exists()) {
-          const film = filmDoc.data();
-          setFilmData(film);
-
-          setShowtime(
-            ticket.session !== 'Seans Bilinmiyor'
-              ? new Date(ticket.session.split('|')[0]).toLocaleString('tr-TR', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              : 'Seans Bilinmiyor'
-          );
+          setFilmData(filmDoc.data());
         } else {
           setError('Film bilgileri bulunamadı.');
           setLoading(false);
@@ -101,7 +121,18 @@ export default function PaymentPage() {
           return;
         }
 
-        // Refresh seat lock
+        setShowtime(
+          ticket.session !== 'Seans Bilinmiyor'
+            ? new Date(ticket.session).toLocaleString('tr-TR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : 'Seans Bilinmiyor'
+        );
+
         const seatDocId = `${ticket.movieId}_${ticket.cinemaId}_${encodeURIComponent(sessionTime)}`;
         await runTransaction(db, async (transaction) => {
           const seatRef = doc(db, 'cinema_seats', seatDocId);
@@ -110,7 +141,6 @@ export default function PaymentPage() {
 
           const updatedSeats = { ...seatData.seats };
           ticket.seats.forEach((seatId) => {
-            // Lock seat if available, undefined, or already locked (by anyone)
             if (!updatedSeats[seatId] || updatedSeats[seatId] === 'available' || updatedSeats[seatId].startsWith('locked_')) {
               updatedSeats[seatId] = `locked_${bookingId}`;
               console.log(`Payment: Refreshed lock for seat ${seatId} to locked_${bookingId}`);
@@ -128,13 +158,11 @@ export default function PaymentPage() {
       }
     };
     fetchData();
-  }, [ticketId, full, student, isGuest, bookingId, sessionTime]);
+  }, [ticketId, bookingId, sessionTime, hall, full, student, isGuest, prices]);
 
-  // Auto-close notification and redirect after 3 seconds
   useEffect(() => {
     if (notification.message && notification.type === 'success') {
       console.log('Payment: Notification set:', notification);
-      console.log('Payment: Notification DOM check:', document.querySelector('.notification'));
       const timer = setTimeout(() => {
         console.log('Payment: Auto-closing notification and redirecting');
         if (user) {
@@ -157,6 +185,7 @@ export default function PaymentPage() {
         ticketId,
         bookingId,
         sessionTime,
+        hall,
         ticketData,
       });
 
@@ -164,6 +193,7 @@ export default function PaymentPage() {
       if (!ticketId) missingParams.push('ticketId');
       if (!bookingId) missingParams.push('bookingId');
       if (!sessionTime) missingParams.push('sessionTime');
+      if (!hall) missingParams.push('hall');
       if (!ticketData || !ticketData.totalPrice) missingParams.push('ticketData or totalPrice');
 
       if (missingParams.length > 0) {
@@ -182,7 +212,6 @@ export default function PaymentPage() {
         const seatData = seatSnap.exists() ? seatSnap.data() : { seats: {} };
         console.log('Payment: Firestore seatData.seats=', seatData.seats);
 
-        // Validate seats
         const invalidSeats = ticketData.seats.filter((seatId) => {
           const status = seatData.seats[seatId];
           console.log(`Payment: Validating seat ${seatId}: status=${status}, expected=locked_${bookingId} or available`);
@@ -200,11 +229,9 @@ export default function PaymentPage() {
           console.log(`Payment: Marking seat ${seatId} as booked_${ticketId}`);
         });
 
-        // Update ticket status
         const ticketRef = doc(db, ticketData.isGuest ? 'guestTickets' : 'tickets', ticketId);
         transaction.set(ticketRef, { status: 'completed' }, { merge: true });
 
-        // Create payment record
         const paymentId = doc(collection(db, 'payments')).id;
         const paymentData = {
           ticketId,
@@ -212,10 +239,14 @@ export default function PaymentPage() {
           timestamp: serverTimestamp(),
           status: 'completed',
           userId: user ? user.uid : null,
+          isGuest,
+          sessionTime,
+          hall,
+          movieId: ticketData.movieId,
+          cinemaId: ticketData.cinemaId,
         };
         transaction.set(doc(db, 'payments', paymentId), paymentData);
 
-        // Update seats
         transaction.set(seatRef, { seats: updatedSeats, lockTimestamp: serverTimestamp() }, { merge: true });
       });
 
@@ -298,7 +329,9 @@ export default function PaymentPage() {
   }
 
   const totalTickets = (ticketData?.fullCount || 0) + (ticketData?.studentCount || 0);
-  const ticketPrice = ticketData?.totalPrice / totalTickets || 0;
+  const calculatedTotalPrice = (ticketData?.fullCount || 0) * prices.full + (ticketData?.studentCount || 0) * prices.student;
+
+  console.log('Payment: ticketData.totalPrice=', ticketData?.totalPrice, 'calculatedTotalPrice=', calculatedTotalPrice);
 
   return (
     <div className="min-h-screen bg-[#0d0d1a] text-white px-6 py-12 overflow-hidden font-cinematic">
@@ -404,20 +437,20 @@ export default function PaymentPage() {
               <h3 className="text-2xl font-semibold text-[#8e5cf5] mb-4 flex items-center">
                 <span className="mr-3">🎫</span> Koltuk Bilgileri
               </h3>
-              <p className="text-xl text-[#e5e7eb]">Salon: {ticketData?.session.split('|')[1] || 'Salon'}</p>
+              <p className="text-xl text-[#e5e7eb]">Salon: {ticketData?.hall || 'Salon Bilinmiyor'}</p>
               <p className="text-xl text-[#e5e7eb] mt-2">Koltuk: {ticketData?.seats?.join(', ') || 'Koltuk'}</p>
               <p className="text-xl text-[#e5e7eb] mt-2">
                 Bilet Türü: {ticketData?.fullCount || 0} Tam Bilet
                 {ticketData?.studentCount > 0 && `, ${ticketData?.studentCount} Öğrenci Bilet`}
               </p>
               <p className="text-xl text-[#e5e7eb] mt-2">
-                {totalTickets} x {ticketPrice.toFixed(2)} ₺ = {ticketData?.totalPrice || 0} ₺
+                {totalTickets} Bilet Toplam: {calculatedTotalPrice.toFixed(2)} ₺
               </p>
             </motion.div>
 
             {!user && ticketData?.isGuest && (
               <motion.div
-                className="bg-[#2a2a3d] rounded-xl p-6 shadow-lg border border-[#6b46c1]/30 hover:shadow-[#8e5cf5]/30 transition-all duration-300 md:col-span-2"
+                className="bg-[#2a2a3d] rounded-xl p-6 shadow-lg border border-[#6b46c1]/30 hover:shadow-[#8e5cf5]/30 transition-all duration-300"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
@@ -458,17 +491,17 @@ export default function PaymentPage() {
               </div>
               <div className="flex justify-between py-1 border-b border-[#6b46c1]/30">
                 <p className="font-medium">Tam Bilet</p>
-                <p>{ticketData?.fullCount || 0} x {ticketPrice.toFixed(2)} ₺</p>
+                <p>{ticketData?.fullCount || 0} x {prices.full.toFixed(2)} ₺</p>
               </div>
               {ticketData?.studentCount > 0 && (
                 <div className="flex justify-between py-1 border-b border-[#6b46c1]/30">
                   <p className="font-medium">Öğrenci Bilet</p>
-                  <p>{ticketData?.studentCount} x {ticketPrice.toFixed(2)} ₺</p>
+                  <p>{ticketData?.studentCount} x {prices.student.toFixed(2)} ₺</p>
                 </div>
               )}
               <div className="flex justify-between py-1 border-b border-[#6b46c1]/30">
                 <p className="font-medium">Ara Toplam</p>
-                <p>{ticketData?.totalPrice || 0} ₺</p>
+                <p>{calculatedTotalPrice.toFixed(2)} ₺</p>
               </div>
               <div className="flex justify-between py-1 border-b border-[#6b46c1]/30">
                 <p className="font-medium">Hizmet Bedeli</p>
@@ -476,7 +509,7 @@ export default function PaymentPage() {
               </div>
               <div className="flex justify-between py-2 font-bold text-xl text-[#8e5cf5]">
                 <p>GENEL TOPLAM</p>
-                <p>{ticketData?.totalPrice || 0} ₺</p>
+                <p>{calculatedTotalPrice.toFixed(2)} ₺</p>
               </div>
             </div>
             <div className="mt-4 flex justify-center">
@@ -506,7 +539,7 @@ export default function PaymentPage() {
         <AnimatePresence>
           {notification.message && (
             <motion.div
-              key={notification.message} // Ensure unique key for re-rendering
+              key={notification.message}
               className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-6 rounded-2xl shadow-2xl backdrop-blur-lg border border-[#6b46c1]/30 max-w-sm w-full z-[2000] notification
                 ${notification.type === 'success' ? 'bg-gradient-to-r from-[#6b46c1]/80 to-[#8e5cf5]/80' : 'bg-gradient-to-r from-red-600/80 to-red-800/80'}`}
               initial={{ opacity: 0, scale: 0.8, y: 20 }}
