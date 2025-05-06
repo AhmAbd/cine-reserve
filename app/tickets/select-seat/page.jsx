@@ -636,20 +636,20 @@ export default function SeatSelection() {
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1">
-                            <p className="text-sm text-gray-400">Koltuklar</p>
-                            <p className="font-medium">{selectedSeats.join(', ')}</p>
+                            <p className="text-sm text-gray-300">Koltuklar</p>
+                            <p className="font-medium text-white">{selectedSeats.join(', ')}</p>
                           </div>
                           <div className="space-y-1">
-                            <p className="text-sm text-gray-400">Tam Bilet</p>
-                            <p className="font-medium">{fullCount}</p>
+                            <p className="text-sm text-gray-300">Tam Bilet</p>
+                            <p className="font-medium text-white">{fullCount}</p>
                           </div>
                           <div className="space-y-1">
-                            <p className="text-sm text-gray-400">Öğrenci Bilet</p>
-                            <p className="font-medium">{studentCount}</p>
+                            <p className="text-sm text-gray-300">Öğrenci Bilet</p>
+                            <p className="font-medium text-white">{studentCount}</p>
                           </div>
                           <div className="space-y-1">
-                            <p className="text-sm text-gray-400">Toplam</p>
-                            <p className="font-medium">{ticketCount} koltuk</p>
+                            <p className="text-sm text-gray-300">Toplam</p>
+                            <p className="font-medium text-white">{ticketCount} koltuk</p>
                           </div>
                         </div>
                         {(!user || isGuest) && (
