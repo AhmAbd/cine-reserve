@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import '../styles/globals.css';
-import Link from 'next/link';
-import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
-import Footer from '../components/layout/Footer';
-import { app } from '../lib/firebase';
-import { motion, AnimatePresence } from 'framer-motion';
+import "../styles/globals.css";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import Footer from "../components/layout/Footer";
+import { app } from "../lib/firebase";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ClientLayout({ children }) {
   const [isClient, setIsClient] = useState(false);
@@ -22,14 +22,14 @@ export default function ClientLayout({ children }) {
   }, []);
 
   // Admin sayfasını kontrol et
-  const isAdminPage = pathname.startsWith('/admin');
+  const isAdminPage = pathname.startsWith("/admin");
 
   // Header ve footer'ı gizlemek için koşul
   const hiddenPaths = [
-    '/login',
-    '/register',
-    '/reset-password',
-    '/forgot-password',
+    "/login",
+    "/register",
+    "/reset-password",
+    "/forgot-password",
   ];
   const showHeader = !hiddenPaths.includes(pathname) && !isAdminPage;
   const showFooter = !hiddenPaths.includes(pathname) && !isAdminPage;
@@ -49,7 +49,7 @@ export default function ClientLayout({ children }) {
     const auth = getAuth(app);
     await signOut(auth);
     setUser(null);
-    router.push('/');
+    router.push("/");
     setIsMenuOpen(false);
   };
 
@@ -69,7 +69,7 @@ export default function ClientLayout({ children }) {
           className="custom-header bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-lg relative overflow-hidden"
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <motion.div
             className="absolute inset-0 opacity-10 md:opacity-20"
@@ -83,7 +83,10 @@ export default function ClientLayout({ children }) {
 
           <div className="container mx-auto flex justify-between items-center px-4 py-3 md:px-6 md:py-4 relative z-10">
             <Link href="/">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <Image
                   src="/logo.png"
                   alt="CineReserve"
@@ -99,7 +102,7 @@ export default function ClientLayout({ children }) {
               <Link href="/movies">
                 <motion.span
                   className="nav-link text-gray-300 font-medium hover:text-purple-400 transition-colors duration-300"
-                  whileHover={{ y: -2, color: '#c084fc' }}
+                  whileHover={{ y: -2, color: "#c084fc" }}
                   transition={{ duration: 0.3 }}
                 >
                   Filmler
@@ -108,7 +111,7 @@ export default function ClientLayout({ children }) {
               <Link href="/cinemas">
                 <motion.span
                   className="nav-link text-gray-300 font-medium hover:text-purple-400 transition-colors duration-300"
-                  whileHover={{ y: -2, color: '#c084fc' }}
+                  whileHover={{ y: -2, color: "#c084fc" }}
                   transition={{ duration: 0.3 }}
                 >
                   Sinemalar
@@ -117,7 +120,7 @@ export default function ClientLayout({ children }) {
               <Link href="/bilet-sorgula">
                 <motion.span
                   className="nav-link text-gray-300 font-medium hover:text-purple-400 transition-colors duration-300"
-                  whileHover={{ y: -2, color: '#c084fc' }}
+                  whileHover={{ y: -2, color: "#c084fc" }}
                   transition={{ duration: 0.3 }}
                 >
                   Bilet Sorgula
@@ -128,7 +131,7 @@ export default function ClientLayout({ children }) {
                   <Link href="/account">
                     <motion.span
                       className="nav-link text-gray-300 font-medium hover:text-purple-400 transition-colors duration-300"
-                      whileHover={{ y: -2, color: '#c084fc' }}
+                      whileHover={{ y: -2, color: "#c084fc" }}
                       transition={{ duration: 0.3 }}
                     >
                       Hesabım
@@ -139,7 +142,7 @@ export default function ClientLayout({ children }) {
                     className="login-button bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-purple-500/20 flex items-center gap-2"
                     whileHover={{
                       scale: 1.05,
-                      boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)',
+                      boxShadow: "0 0 15px rgba(168, 85, 247, 0.3)",
                     }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -164,7 +167,7 @@ export default function ClientLayout({ children }) {
                     className="login-button bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-purple-500/20 flex items-center gap-2"
                     whileHover={{
                       scale: 1.05,
-                      boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)',
+                      boxShadow: "0 0 15px rgba(168, 85, 247, 0.3)",
                     }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -224,15 +227,15 @@ export default function ClientLayout({ children }) {
               <motion.nav
                 className="md:hidden bg-gray-900/95 backdrop-blur-lg border-t border-purple-600/30"
                 initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
+                animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
               >
                 <div className="flex flex-col items-center py-4 gap-4">
                   <Link href="/movies" onClick={() => setIsMenuOpen(false)}>
                     <motion.span
                       className="text-gray-300 font-medium hover:text-purple-400 text-lg"
-                      whileHover={{ y: -2, color: '#c084fc' }}
+                      whileHover={{ y: -2, color: "#c084fc" }}
                       transition={{ duration: 0.3 }}
                     >
                       Filmler
@@ -241,16 +244,19 @@ export default function ClientLayout({ children }) {
                   <Link href="/cinemas" onClick={() => setIsMenuOpen(false)}>
                     <motion.span
                       className="text-gray-300 font-medium hover:text-purple-400 text-lg"
-                      whileHover={{ y: -2, color: '#c084fc' }}
+                      whileHover={{ y: -2, color: "#c084fc" }}
                       transition={{ duration: 0.3 }}
                     >
                       Sinemalar
                     </motion.span>
                   </Link>
-                  <Link href="/bilet-sorgula" onClick={() => setIsMenuOpen(false)}>
+                  <Link
+                    href="/bilet-sorgula"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
                     <motion.span
                       className="text-gray-300 font-medium hover:text-purple-400 text-lg"
-                      whileHover={{ y: -2, color: '#c084fc' }}
+                      whileHover={{ y: -2, color: "#c084fc" }}
                       transition={{ duration: 0.3 }}
                     >
                       Bilet Sorgula
@@ -258,10 +264,13 @@ export default function ClientLayout({ children }) {
                   </Link>
                   {user ? (
                     <>
-                      <Link href="/account" onClick={() => setIsMenuOpen(false)}>
+                      <Link
+                        href="/account"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
                         <motion.span
                           className="text-gray-300 font-medium hover:text-purple-400 text-lg"
-                          whileHover={{ y: -2, color: '#c084fc' }}
+                          whileHover={{ y: -2, color: "#c084fc" }}
                           transition={{ duration: 0.3 }}
                         >
                           Hesabım
@@ -272,7 +281,7 @@ export default function ClientLayout({ children }) {
                         className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-medium text-lg flex items-center gap-2"
                         whileHover={{
                           scale: 1.05,
-                          boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)',
+                          boxShadow: "0 0 15px rgba(168, 85, 247, 0.3)",
                         }}
                         whileTap={{ scale: 0.95 }}
                       >
@@ -297,7 +306,7 @@ export default function ClientLayout({ children }) {
                         className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-medium text-lg flex items-center gap-2"
                         whileHover={{
                           scale: 1.05,
-                          boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)',
+                          boxShadow: "0 0 15px rgba(168, 85, 247, 0.3)",
                         }}
                         whileTap={{ scale: 0.95 }}
                       >
