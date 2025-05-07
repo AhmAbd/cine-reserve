@@ -1,9 +1,9 @@
-'use client';
-import { motion } from 'framer-motion';
+"use client";
+import { motion } from "framer-motion";
 import MovieList from "../components/MovieList";
 import CinemaList from "../components/CinemaList";
 import FeaturedSlider from "../components/FeaturedSlider";
-import Link from 'next/link';
+import Link from "next/link";
 
 export default function HomePage() {
   return (
@@ -15,14 +15,14 @@ export default function HomePage() {
       </section>
 
       {/* Main content with staggered animations */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
         className="space-y-16 pb-16"
       >
         {/* Decorative section dividers */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
@@ -33,7 +33,7 @@ export default function HomePage() {
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
@@ -55,7 +55,8 @@ export default function HomePage() {
             Sinema Keyfini Keşfedin
           </h3>
           <p className="text-gray-300 max-w-2xl mx-auto mb-6">
-            En yeni filmler ve özel salon deneyimleri için biletinizi şimdi alın.
+            En yeni filmler ve özel salon deneyimleri için biletinizi şimdi
+            alın.
           </p>
           <Link href="/movies" passHref>
             <motion.button
@@ -78,10 +79,10 @@ export default function HomePage() {
       </div>
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
-        
+        @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap");
+
         .font-cinematic {
-          font-family: 'Montserrat', sans-serif;
+          font-family: "Montserrat", sans-serif;
         }
       `}</style>
     </main>
